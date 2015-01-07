@@ -1,0 +1,38 @@
+
+
+{% set mappings = [] %}
+{% for network_type in ('flat', 'vlan') %}
+{% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
+{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
+{% do mappings.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet))))) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+
+{% set vlan_networks = [] %}
+{% for physnet in salt['pillar.get']('neutron:type_drivers:vlan:physnets', default=()) %}
+{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:hosts' % physnet, default=()) %}
+{% do vlan_networks.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:vlan_range' % physnet, default=())))) %}
+{% endif %}
+{% endfor %}
+
+
+{% set flat_networks = [] %}
+{% for physnet in salt['pillar.get']('neutron:type_drivers:flat:physnets', default=()) %}
+{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:flat:physnets:%s:hosts' % physnet) %}
+{% do flat_networks.append(physnet) %}
+{% endif %}
+{% endfor %}
+
+
+{% set bridges = { salt['pillar.get']('neutron:intergration_bridge', default='br-int'): None } %}
+{% for network_type in ('flat', 'vlan') %}
+{% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
+{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
+{% do bridges.update({ salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet)): 
+                       salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts:%s' % (network_type, physnet, grains['id'])) }) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
