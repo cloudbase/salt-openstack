@@ -2,6 +2,8 @@
 neutron: 
   intergration_bridge: "br-int"
 
+  external_bridge: "<external_bridge>"
+
   metadata_secret: "<secret_token>"
 
   type_drivers: 

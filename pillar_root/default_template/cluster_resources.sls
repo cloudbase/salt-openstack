@@ -1,7 +1,7 @@
 
 cluster_name: "<cluster_name>"
 
-cluster_type: "icehouse"
+cluster_type: "<cluster_type>"
 
 db_engine: "mysql"
 

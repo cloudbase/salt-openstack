@@ -10,26 +10,18 @@ databases:
     db_name: "nova"
     username: "nova"
     password: "<password_value>"
-    service: "nova-api"
-    db_sync: "nova-manage db sync"
   keystone: 
     db_name: "keystone"
     username: "keystone"
     password: "<password_value>"
-    service: "keystone"
-    db_sync: "keystone-manage db_sync"
   cinder: 
     db_name: "cinder"
     username: "cinder"
     password: "<password_value>"
-    service: "cinder"
-    db_sync: "cinder-manage db sync"
   glance: 
     db_name: "glance"
     username: "glance"
     password: "<password_value>"
-    service: "glance"
-    db_sync: "glance-manage db_sync"
   neutron: 
     db_name: "neutron"
     username: "neutron"
@@ -38,12 +30,12 @@ databases:
     db_name: "heat"
     username: "heat"
     password: "<password_value>"
-    db_sync: "heat-manage db_sync"
 
 keystone: 
   admin_token: "<secret_token>"
   roles: 
     - "admin"
+    - "heat_stack_owner"
     - "heat_stack_user"
   tenants: 
     admin: 

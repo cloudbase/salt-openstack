@@ -5,7 +5,7 @@ keystone_admin_create:
     - managed
     - group: root
     - mode: 644
-    - name: {{ salt['pillar.get']('files:keystone_admin:path', default='/root/keystone_admin') }}
+    - name: {{ salt['pillar.get']('files:keystone_admin:path') }}
     - user: root
     - contents: |
         export OS_USERNAME=admin

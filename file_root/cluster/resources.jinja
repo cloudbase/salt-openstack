@@ -23,18 +23,11 @@
 
 
 {% macro get_candidate(sls) -%}
-{% for host in salt['pillar.get']('hosts', default=()).keys() %}
-{% for cluster_entity in salt['pillar.get']('roles' , default=()) %}
-{% if cluster_entity in ['controller', 'network'] and grains['id'] == salt['pillar.get']('%s' % cluster_entity) %}
-{% if sls in salt['pillar.get']('sls:%s' % cluster_entity) %}
-{{ salt['pillar.get']('hosts:%s' % host) }}{% endif %}
-{% else %}
-{% if host in salt['pillar.get']('%s' % cluster_entity) %}
-{% if sls in salt['pillar.get']('sls:%s' % cluster_entity) %}
-{{ salt['pillar.get']('hosts:%s' % host) }}{% endif %}
+{% for role in salt['pillar.get']('roles' , default=()) %}
+{% if sls in salt['pillar.get']('sls:%s' % role) %}
+{% if role in ['controller', 'network'] %}
+{{ salt['pillar.get']('hosts:%s' % pillar[role]) }}{% elif grains['id'] in salt['pillar.get']('%s' % role) %}
+{{ salt['pillar.get']('hosts:%s' % grains['id']) }}{% endif %}
 {% endif %}
-{% endif %}
-{% endfor %}
 {% endfor %}
 {%- endmacro %}
-

@@ -161,6 +161,12 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
  The cluster name should be the name of the folder with the pillar data.
 
+- OpenStack release name
+
+        cluster_type
+
+ The OpenStack release which will be installed. At the moment only: ``juno`` and ``icehouse``.
+
 - OpenStack nodes
 
  Add the management ip address of all your OpenStack nodes under the **hosts** section. Use the following structure:
@@ -218,6 +224,10 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 - Secret token used by neutron
 
         neutron:metadata_secret
+
+- Name of bridge used for external network traffic
+
+        neutron:external_bridge
 
 - Openvswitch physnets mappings
 
