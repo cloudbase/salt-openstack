@@ -3,52 +3,54 @@
 nova_api_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_api', default='nova-api') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_api') }}"
 
 nova_cert_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_cert', default='nova-cert') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_cert') }}"
 
 nova_conductor_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_conductor', default='nova-conductor') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_conductor') }}"
 
 nova_consoleauth_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_consoleauth', default='nova-consoleauth') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_consoleauth') }}"
 
 nova_novncproxy_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_novncproxy', default='nova-novncproxy') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_novncproxy') }}"
 
 nova_scheduler_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_scheduler', default='nova-scheduler') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_scheduler') }}"
 
 python_novaclient_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_pythonclient', default='python-novaclient') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_pythonclient') }}"
 
+{% if grains['os'] == 'Ubuntu' %}
 nova_ajax_console_proxy_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:nova_ajax_console_proxy', default='nova-ajax-console-proxy') }}"
+    - name: "{{ salt['pillar.get']('packages:nova_ajax_console_proxy') }}"
 
 novnc_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:novnc', default='novnc') }}"
+    - name: "{{ salt['pillar.get']('packages:novnc') }}"
+{% endif %}
 
 nova_conf:
   file:
     - managed
-    - name: "{{ salt['pillar.get']('conf_files:nova', default='/etc/nova/nova.conf') }}"
+    - name: "{{ salt['pillar.get']('conf_files:nova') }}"
     - user: nova
     - group: nova
     - mode: 644
@@ -56,50 +58,48 @@ nova_conf:
       - ini: nova_conf
   ini:
     - options_present
-    - name: "{{ salt['pillar.get']('conf_files:nova', default='/etc/nova/nova.conf') }}"
+    - name: "{{ salt['pillar.get']('conf_files:nova') }}"
     - sections: 
         DEFAULT: 
           rpc_backend: "{{ salt['pillar.get']('queue_engine') }}"
-          rabbit_host: "{{ get_candidate('queue.%s' % salt['pillar.get']('queue_engine', default='rabbit')) }}"
-          rabbit_password: {{ salt['pillar.get']('rabbitmq:guest_password', default='Passw0rd') }}
+          rabbit_host: "{{ get_candidate('queue.%s' % salt['pillar.get']('queue_engine')) }}"
+          rabbit_password: {{ salt['pillar.get']('rabbitmq:guest_password') }}
+          auth_strategy: "keystone"
           my_ip: "{{ get_candidate('nova') }}"
           vncserver_listen: "{{ get_candidate('nova') }}"
           vncserver_proxyclient_address: "{{ get_candidate('nova') }}"
-          auth_strategy: "keystone"
-          network_api_class: "nova.network.neutronv2.api.API"
-          neutron_url: "http://{{ get_candidate('neutron') }}:9696"
-          neutron_auth_strategy: "keystone"
-          neutron_admin_tenant_name: "service"
-          neutron_admin_username: "neutron"
-          neutron_admin_password: "{{ salt['pillar.get']('keystone:tenants:service:users:neutron:password') }}"
-          neutron_admin_auth_url: "http://{{ get_candidate('keystone') }}:35357/v2.0"
-          linuxnet_interface_driver: "nova.network.linux_net.LinuxOVSInterfaceDriver"
-          firewall_driver: "nova.virt.firewall.NoopFirewallDriver"
-          security_group_api: "neutron"
-          service_neutron_metadata_proxy: "true"
-          neutron_metadata_proxy_shared_secret: "{{ salt['pillar.get']('neutron:metadata_secret') }}"
-          vif_plugging_is_fatal: "False"
-          vif_plugging_timeout: "0"
+{% if pillar['cluster_type'] == 'juno' %}
+        glance:
+          host: "{{ get_candidate('glance') }}"
+{% else %}
+          glance_host: {{ get_candidate('glance') }}
+{% endif %}
         keystone_authtoken: 
           auth_uri: "http://{{ get_candidate('keystone') }}:5000"
+{% if pillar['cluster_type'] == 'juno' %}
+          identity_uri: http://{{ get_candidate('keystone') }}:35357
+{% else %}
           auth_host: "{{ get_candidate('keystone') }}"
           auth_port: "35357"
           auth_protocol: "http"
+{% endif %}
           admin_tenant_name: "service"
           admin_user: "nova"
           admin_password: "{{ salt['pillar.get']('keystone:tenants:service:users:nova:password') }}"
         database: 
-          connection: "mysql://{{ salt['pillar.get']('databases:nova:username', default='nova') }}:{{ salt['pillar.get']('databases:nova:password', default='nova_pass') }}@{{ get_candidate('mysql') }}/{{ salt['pillar.get']('databases:nova:db_name', default='nova') }}"
+          connection: "mysql://{{ salt['pillar.get']('databases:nova:username') }}:{{ salt['pillar.get']('databases:nova:password') }}@{{ get_candidate('mysql') }}/{{ salt['pillar.get']('databases:nova:db_name') }}"
     - require:
       - pkg: nova_api_install
       - pkg: nova_conductor_install
       - pkg: nova_scheduler_install
       - pkg: nova_cert_install
       - pkg: nova_consoleauth_install
-      - pkg: python_novaclient_install
       - pkg: nova_novncproxy_install
+      - pkg: python_novaclient_install
+{% if grains['os'] == 'Ubuntu' %}
       - pkg: nova_ajax_console_proxy_install
       - pkg: novnc_install
+{% endif %}
 
 nova_sqlite_delete:
   file:
@@ -111,14 +111,15 @@ nova_sqlite_delete:
 nova_sync: 
   cmd: 
     - run
-    - name: "{{ salt['pillar.get']('databases:nova:db_sync') }}"
+    - name: "su -s /bin/sh -c 'nova-manage db sync' nova"
     - require: 
       - file: nova_sqlite_delete
 
 nova_api_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_api', default='nova-api') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_api') }}"
     - require:
       - pkg: nova_api_install
     - watch:
@@ -129,7 +130,8 @@ nova_api_running:
 nova_cert_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_cert', default='nova-cert') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_cert') }}"
     - require:
       - pkg: nova_cert_install
     - watch:
@@ -140,7 +142,8 @@ nova_cert_running:
 nova_consoleauth_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_consoleauth', default='nova-consoleauth') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_consoleauth') }}"
     - require:
       - pkg: nova_consoleauth_install
     - watch:
@@ -151,7 +154,8 @@ nova_consoleauth_running:
 nova_scheduler_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_scheduler', default='nova-scheduler') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_scheduler') }}"
     - require:
       - pkg: nova_scheduler_install
     - watch:
@@ -162,7 +166,8 @@ nova_scheduler_running:
 nova_conductor_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_conductor', default='nova-conductor') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_conductor') }}"
     - require:
       - pkg: nova_conductor_install
     - watch:
@@ -173,7 +178,8 @@ nova_conductor_running:
 nova_novncproxy_running:
   service:
     - running
-    - name: "{{ salt['pillar.get']('services:nova_novncproxy', default='nova-novncproxy') }}"
+    - enable: True
+    - name: "{{ salt['pillar.get']('services:nova_novncproxy') }}"
     - require:
       - pkg: nova_novncproxy_install
     - watch:

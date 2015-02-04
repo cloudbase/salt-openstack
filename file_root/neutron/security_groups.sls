@@ -9,7 +9,7 @@ openstack_security_group_{{ security_group }}:
     - rules: {{ salt['pillar.get']('neutron:security_groups:%s:rules' % security_group, []) }}
     - connection_user: {{ salt['pillar.get']('neutron:security_groups:%s' % security_group).get('user', 'admin') }}
     - connection_tenant: {{ salt['pillar.get']('neutron:security_groups:%s' % security_group).get('tenant', 'admin') }}
-    - connection_password: {{ salt['pillar.get']('keystone:tenants:%s:users:%s:password' % (salt['pillar.get']('neutron:security_groups:%s' % security_group).get('tenant', 'admin'), salt['pillar.get']('neutron:security_groups:%s' % security_group).get('user', 'admin')), 'Passw0rd') }}
+    - connection_password: {{ salt['pillar.get']('keystone:tenants:%s:users:%s:password' % (salt['pillar.get']('neutron:security_groups:%s' % security_group).get('tenant', 'admin'), salt['pillar.get']('neutron:security_groups:%s' % security_group).get('user', 'admin'))) }}
     - connection_auth_url: {{ salt['pillar.get']('keystone:services:keystone:endpoint:internalurl', 'http://{0}:5000/v2.0').format(
-    get_candidate(salt['pillar.get']('keystone:services:keystone:endpoint:endpoint_host_sls', default='keystone'))) }}
+    get_candidate(salt['pillar.get']('keystone:services:keystone:endpoint:endpoint_host_sls'))) }}
 {% endfor %}

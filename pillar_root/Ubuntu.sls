@@ -40,6 +40,11 @@ packages:
   heat_api: heat-api
   heat_api_cfn: heat-api-cfn
   heat_engine: heat-engine
+  python_keystone: python-keystoneclient
+  neutron_pythonclient: python-neutronclient
+  cinder_pythonclient: python-cinderclient
+  heat_pythonclient: python-heatclient
+  python_pip: python-pip
 
 services:
   mysql: mysql

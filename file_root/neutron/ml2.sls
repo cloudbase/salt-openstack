@@ -5,12 +5,12 @@
 neutron_ml2_install:
   pkg:
     - installed
-    - name: "{{ salt['pillar.get']('packages:neutron_ml2', default='neutron-plugin-ml2') }}"
+    - name: "{{ salt['pillar.get']('packages:neutron_ml2') }}"
 
 neutron_ml2_conf:
   file:
     - managed
-    - name: "{{ salt['pillar.get']('conf_files:neutron_ml2', default='/etc/neutron/plugins/ml2/ml2_conf.ini') }}"
+    - name: "{{ salt['pillar.get']('conf_files:neutron_ml2') }}"
     - user: neutron
     - group: neutron
     - mode: 644
@@ -18,7 +18,7 @@ neutron_ml2_conf:
       - ini: neutron_ml2_conf
   ini:
     - options_present
-    - name: "{{ salt['pillar.get']('conf_files:neutron_ml2', default='/etc/neutron/plugins/ml2/ml2_conf.ini') }}"
+    - name: "{{ salt['pillar.get']('conf_files:neutron_ml2') }}"
     - sections:
         ml2:
           type_drivers: "{{ ','.join(salt['pillar.get']('neutron:type_drivers')) }}"
@@ -56,6 +56,9 @@ neutron_ml2_conf:
 {% endif %}
         securitygroup:
           firewall_driver: neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+{% if pillar['cluster_type'] == 'juno' %}
+          enable_ipset: True
+{% endif %}
           enable_security_group: True
     - require:
       - pkg: neutron_ml2_install
