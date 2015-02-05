@@ -18,3 +18,16 @@ juno_repo_install:
       - rdo-release: "{{ salt['pillar.get']('packages:juno_repo') }}"
 {% endif %}
 {% endif %}
+
+{% if pillar['cluster_type'] == 'juno' and grains['os'] == 'Ubuntu' %}
+cloudarchive-juno_managed:
+  file:
+    - managed
+    - append
+    - name: /etc/apt/sources.list.d/cloudarchive-juno.list
+    - text: "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
+    - unless: cat /etc/apt/sources.list.d/cloudarchive-juno.list | egrep "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
+	- user: root
+	- group: root
+	- mode: 755
+{% endif %}

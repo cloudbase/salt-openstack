@@ -45,6 +45,8 @@ packages:
   cinder_pythonclient: python-cinderclient
   heat_pythonclient: python-heatclient
   python_pip: python-pip
+  sysfsutils: sysfsutils
+  ubuntu-cloud-keyring: ubuntu-cloud-keyring
 
 services:
   mysql: mysql
