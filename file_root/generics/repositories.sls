@@ -33,5 +33,5 @@ cloudarchive_juno:
     - unless: cat /etc/apt/sources.list.d/cloudarchive-juno.list | egrep "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
     - user: root
     - group: root
-    - mode: 755
+    - mode: 644
 {% endif %}
