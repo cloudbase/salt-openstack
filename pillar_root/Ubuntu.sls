@@ -44,7 +44,6 @@ packages:
   neutron_pythonclient: python-neutronclient
   cinder_pythonclient: python-cinderclient
   heat_pythonclient: python-heatclient
-  python_pip: python-pip
   sysfsutils: sysfsutils
   ubuntu-cloud-keyring: ubuntu-cloud-keyring
 

@@ -1,3 +1,4 @@
+{% if grains['os'] == 'CentOS' %}
 python_pip_install:
   pkg:
     - installed
@@ -9,3 +10,4 @@ six_upgrade:
     - name: "pip install six -U"
     - require:
       - pkg: python_pip_install
+{% endif %}
