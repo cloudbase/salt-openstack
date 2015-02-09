@@ -27,7 +27,6 @@ ubuntu_cloud_keyring_install:
 
 cloudarchive_juno:
   file:
-    - managed
     - append
     - name: /etc/apt/sources.list.d/cloudarchive-juno.list
     - text: "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
