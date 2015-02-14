@@ -1,4 +1,3 @@
-
 cluster_name: "<cluster_name>"
 
 cluster_type: "<cluster_type>"
@@ -25,6 +24,7 @@ compute:
 
 sls: 
   - controller: 
+    - "ntp"
     - "mysql"
     - "mysql.client"
     - "mysql.openstack_dbschema"

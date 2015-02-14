@@ -43,6 +43,7 @@ packages:
   lvm: lvm2
   targetcli: targetcli
   python_pip: python-pip
+  ntp: ntp
 
 services:
   mysql: mariadb
@@ -75,6 +76,7 @@ services:
   lvm: lvm2-lvmetad
   cinder_volume: openstack-cinder-volume
   iscsi_target: target
+  ntp: ntpd
 
 conf_files:
   mysql: "/etc/my.cnf"
