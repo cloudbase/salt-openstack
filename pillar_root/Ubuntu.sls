@@ -46,6 +46,7 @@ packages:
   heat_pythonclient: python-heatclient
   sysfsutils: sysfsutils
   ubuntu-cloud-keyring: ubuntu-cloud-keyring
+  ntp: ntp
 
 services:
   mysql: mysql
@@ -75,6 +76,7 @@ services:
   heat_api: heat-api
   heat_api_cfn: heat-api-cfn
   heat_engine: heat-engine
+  ntp: ntp
 
 conf_files:
   mysql: "/etc/mysql/my.cnf"
