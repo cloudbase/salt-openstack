@@ -98,3 +98,5 @@ conf_files:
   nova: "/etc/nova/nova.conf"
   nova_compute: "/etc/nova/nova-compute.conf"
   heat: "/etc/heat/heat.conf"
+  openstack_promisc_interfaces: "/etc/init/openstack-promisc-interfaces.conf"
+  br_proxy_script: "/root/set-br-proxy.sh"
