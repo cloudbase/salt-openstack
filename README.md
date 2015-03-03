@@ -4,18 +4,18 @@
 
 On the master machine execute the following to install the salt-master package:
 
-    apt-get update && \
-    apt-get upgrade -y && \
-    add-apt-repository ppa:saltstack/salt -y && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install salt-master -y
+    sudo apt-get update && \
+    sudo apt-get upgrade -y && \
+    sudo add-apt-repository ppa:saltstack/salt -y && \
+    sudo apt-get update && \
+    sudo apt-get upgrade -y && \
+    sudo apt-get install salt-master -y
 
 ### 1.2 Configure salt-master
 
-Clone the salt-openstack cloudbase repository: 
+Clone the salt-openstack cloudbase git repository: 
 
-    git clone git@github.com:cloudbase/salt-openstack.git
+    git clone https://github.com/cloudbase/salt-openstack.git
 
 Inside the repository, two folders are found:
 
@@ -27,29 +27,31 @@ Add / Update the following configuration options in ``/etc/salt/master``
 
     pillar_roots:
       openstack:
-        - <path_to_pillar_root>
+        - <absolute_path_to_pillar_root>
     file_roots:
       openstack:
-        - <path_to_file_root>
+        - <absolute_path_to_file_root>
     jinja_trim_blocks: True
     jinja_lstrip_blocks: True
 
 Restart the salt-master service:
 
-    service salt-master restart
+    sudo service salt-master restart
 
 ### 1.3 Install salt-minion(s)
 
 On the minion machine(s) execute execute the following to install the salt-minion package:
 
-    apt-get update && \
-    apt-get upgrade -y && \
-    add-apt-repository ppa:saltstack/salt -y && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install salt-minion -y
+    sudo apt-get update && \
+    sudo apt-get upgrade -y && \
+    sudo add-apt-repository ppa:saltstack/salt -y && \
+    sudo apt-get update && \
+    sudo apt-get upgrade -y && \
+    sudo apt-get install salt-minion -y
 
 ### 1.4 Configure salt-minion(s)
+
+As a requirement for OpenStack, ``Network Manager`` service must be disabled and salt-minion(s) must not depened on it.
 
 It is recommended to change the minion’s id since any machine identification in SaltStack is based on the minion id, thus needed for deploying OpenStack. Minion id defaults to the FQDN of that machine. 
 
@@ -58,16 +60,16 @@ Edit ``/etc/salt/minion_id`` and change the default value.
 Add the salt-master ip address to ``/etc/salt/minion`` conf file by executing the following 
 command: 
 
-    echo "master: <master_ip_address>" >> /etc/salt/minion
+    sudo sh -c "echo 'master: <master_ip_address>' >> /etc/salt/minion"
   
 Execute the following commands to enable logging to a file and debug level:
 
-    echo "log_file: /var/log/salt/minion" >> /etc/salt/minion
-    echo "log_level_logfile: debug" >> /etc/salt/minion
+    sudo sh -c "echo 'log_file: /var/log/salt/minion' >> /etc/salt/minion"
+    sudo sh -c "echo 'log_level_logfile: debug' >> /etc/salt/minion"
 
 Restart the salt-minion service:
 
-    service salt-minion restart
+    sudo service salt-minion restart
 
 Instructions on how to set up Salt on a different operating system can be found at this link: http://docs.saltstack.com/en/latest/topics/installation/
 
@@ -75,9 +77,9 @@ Instructions on how to set up Salt on a different operating system can be found 
 
 At this point minion machine tries to connect the the master machine. In order to allow this connection, the minion key has to be accepted by the master. On the master machine, execute the following command:
 
-    salt-key -a '<minion_id>' -y
+    sudo salt-key -a '<minion_id>' -y
 
-Execute ``salt-key -L`` on master machine and the following output is given:
+Execute ``sudo salt-key -L`` on master machine and the following output is given:
 
     Accepted Keys:
     <minion_id>
@@ -88,7 +90,7 @@ It means that the minion with the id ``<minion_id>`` is connected to the master.
 
 Test the master - minion connectivity by trying to ping the minion machine from the master. On the salt master execute:
 
-    salt '<minion_id>' test.ping
+    sudo salt '<minion_id>' test.ping
 
 The following output is given:
 
@@ -96,6 +98,7 @@ The following output is given:
         True
 
 This means that the minion machine successfully connected to the master machine.
+
 
 ## 2. Configure OpenStack parameters
 
@@ -211,7 +214,7 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
  After glance is installed, the image is downloaded from the given ``<image_url>`` and uploaded to glance into the tenant ``<tenant_name>`` using the user with username ``<user_name>``. 
 
-- Path where keystonerc for user admin will be saved
+- Absolute path where keystonerc for user admin will be saved on the salt-minion(s)
 
         files:keystone_admin:path
 
@@ -225,9 +228,13 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         neutron:metadata_secret
 
-- Boolean value to enable/disable single NIC OpenStack deployment
+- Boolean value to enable / disable single NIC OpenStack deployment
 
         single_nic:enable
+ 
+ In case this value is set to ``True``, ``br-proxy`` needs to be set up as it is needed for single NIC OpenStack. Configuration is made and after the OpenStack deployment is done, networking service just needs to be restarted to have this set up.
+ 
+ **NOTE**: Due to a bug on Ubuntu 14.04 that networking service cannot be stopped / restarted, a bash script is created to set ``br-proxy`` up. At the end of salt-scripts execution, it can be found on the salt-minion at the default location ``/root/set-br-proxy.sh``
 
 - Name of the network interface used in the single NIC OpenStack deployment
 
@@ -314,6 +321,7 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
               to-port: <end_port>
               cidr: '<cidr>'
 
+
 ## 3. Install OpenStack
 
 OpenStack parameters are configured and the environment is ready to be installed. Before running salt to install it, on the salt-master machine, edit ``top.sls`` file from ``pillar_root``.   
@@ -338,16 +346,14 @@ OpenStack environment is ready to be installed.
 
 On the salt master machine execute the following commands:
 
-    salt '*' saltutil.refresh_pillar                         
-    # It will make the OpenStack parameters available
-    # on the targeted node(s)
+    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.refresh_pillar                         
+    # It will make the OpenStack parameters available on the targeted minion(s).
 
-    salt '*' saltutil.sync_all                               
-    # It will upload all of the custom dynamic modules to 
-    # minion(s). Custom modules for OpenStack (network create, router  
-    # create, security group create, etc.) have been defined.
+    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.sync_all                               
+    # It will upload all of the custom dynamic modules to the targeted minion(s). 
+    # Custom modules for OpenStack (network create, router create, security group create, etc.) have been defined.
 
-    salt -C 'I@cluster_name:<cluster_name>' state.highstate  
+    sudo salt -C 'I@cluster_name:<cluster_name>' state.highstate  
     # It will install the OpenStack environment
 
 Replace ``<cluster_name>`` with the name of the OpenStack environment as defined in ``cluster_resources.sls`` file.
@@ -364,3 +370,8 @@ At the end of the execution, the following output is given:
 A total number of ``<total_states>`` have been executed and ``<states_caused_changes>`` produced any change during the OpenStack installation.
 
 ``<failed_states>`` should be zero. In case it is higher than zero, check the logs on the minion(s) for errors details.
+
+OpenStack is installed using SaltStack. Depending on your Linux distribution, horizon can be accessed at the URL:
+
+ - ``http://<minion_ip_address>/horizon`` for Ubuntu
+ - ``http://<minion_ip_address>/dashboard`` for CentOS
