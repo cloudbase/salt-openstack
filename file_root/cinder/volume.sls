@@ -162,6 +162,21 @@ cinder_volumes_losetup_running:
     - name: openstack-losetup
     - require:
       - file: cinder_volumes_systemd_service
+{% elif grains['os'] == 'Ubuntu' %}
+mount_cinder_volumes_upstart_job:
+  file: 
+    - managed
+    - name: /etc/init/openstack-cinder-losetup.conf
+    - user: root
+    - group: root
+    - mode: 644
+    - contents: |
+
+        start on started {{ salt['pillar.get']('services:cinder_volume') }}
+
+        script
+            losetup -f {{ salt['pillar.get']('cinder:volumes_path') }} && vgchange -a y {{ salt['pillar.get']('cinder:volumes_group_name') }} && service {{ salt['pillar.get']('services:cinder_volume') }} restart
+        end script
 {% endif %}
 
 cinder_volume_service:

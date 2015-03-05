@@ -137,6 +137,13 @@ chown_kvm:
     - require:
       - pkg: nova_compute_install
 
+chmod_kvm:
+  cmd: 
+    - run
+    - name: chmod 660 /dev/kvm
+    - require:
+      - cmd: chown_kvm
+
 libvirtd_running:
   service: 
     - running

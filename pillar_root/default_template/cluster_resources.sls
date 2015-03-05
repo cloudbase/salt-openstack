@@ -7,7 +7,7 @@ db_engine: "mysql"
 queue_engine: "rabbit"
 
 hosts: 
-  "<minion_id>": "<management_ip_address>"
+  "<minion_id>": "<minion_management_ip_address>"
 
 roles:
   - "controller"

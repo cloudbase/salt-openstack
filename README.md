@@ -225,6 +225,14 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         neutron:metadata_secret
 
+- Boolean value to enable/disable single NIC OpenStack deployment
+
+        single_nic:enable
+
+- Name of the network interface used in the single NIC OpenStack deployment
+
+        single_nic:interface
+
 - Name of bridge used for external network traffic
 
         neutron:external_bridge

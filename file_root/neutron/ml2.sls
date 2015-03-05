@@ -54,6 +54,7 @@ neutron_ml2_conf:
           enable_tunneling: True
           local_ip: "{{ salt['pillar.get']('hosts:%s' % grains['id']) }}"
 {% endif %}
+          integration_bridge: {{ salt['pillar.get']('neutron:intergration_bridge', default='br-int') }}
         securitygroup:
           firewall_driver: neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
 {% if pillar['cluster_type'] == 'juno' %}

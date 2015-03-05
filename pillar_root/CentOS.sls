@@ -77,6 +77,9 @@ services:
   cinder_volume: openstack-cinder-volume
   iscsi_target: target
   ntp: ntpd
+  openstack_promisc_interfaces: openstack-promisc-interfaces
+  network_manager: NetworkManager
+  network: network
 
 conf_files:
   mysql: "/etc/my.cnf"
@@ -96,3 +99,5 @@ conf_files:
   nova_compute: "/etc/nova/nova-compute.conf"
   neutron_metadata_agent: "/etc/neutron/metadata_agent.ini"
   openstack_dashboard: "/etc/openstack-dashboard/local_settings"
+  openstack_promisc_interfaces: "/var/lib/openvswitch/openstack-promisc-interfaces.sh"
+  openstack_promisc_interfaces_systemd: "/lib/systemd/system/openstack-promisc-interfaces.service"

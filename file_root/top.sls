@@ -10,5 +10,4 @@ openstack:
 {% for formula in formulas %}
     - {{ formula }}
 {% endfor %}
-    - postinstall
     - postinstall.files

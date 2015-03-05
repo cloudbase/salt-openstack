@@ -4,6 +4,10 @@ neutron:
 
   external_bridge: "<external_bridge>"
 
+  single_nic: 
+    enable: "<True/False>"
+    interface: "<interface_name>"
+
   metadata_secret: "<secret_token>"
 
   type_drivers: 
