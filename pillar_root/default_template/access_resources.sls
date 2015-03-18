@@ -42,7 +42,7 @@ keystone:
       users: 
         admin: 
           password: "<password_value>"
-          roles: "[\"admin\"]"
+          roles: "[\"admin\", \"heat_stack_owner\"]"
           email: "salt@openstack.com"
     service: 
       users: 

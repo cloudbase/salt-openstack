@@ -14,6 +14,10 @@ openstack_network_{{ network }}:
     - {{ network_param }}: {{ salt['pillar.get']('neutron:networks:%s' % network)[network_param] }}
 {% endif %}
 {% endfor %}
+{% if salt['pillar.get']('reset').lower() != None and salt['pillar.get']('reset').lower() == 'soft' %}
+    - require:
+      - cmd: neutron_reset
+{% endif %}
 {% for subnet in salt['pillar.get']('neutron:networks:%s:subnets' % network, ()) %}
 openstack_subnet_{{ subnet }}:
   neutron:

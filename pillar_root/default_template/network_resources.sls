@@ -1,6 +1,6 @@
 
 neutron: 
-  intergration_bridge: "br-int"
+  integration_bridge: "br-int"
 
   external_bridge: "<external_bridge>"
 
@@ -24,6 +24,30 @@ neutron:
           vlan_range: "<start_vlan>:<end_vlan>"
           hosts:
             "<minion_id>": "<interface_name>"
+    gre: 
+      physnets:
+        <physnet_name>:
+          bridge: "<bridge_name>"
+          hosts:
+            "<minion_id>": "<interface_name>"
+      tunnels:
+        <tunnel_name>:
+          tunnel_id_ranges: "<start_tunnel_id>:<end_tunnel_id>"
+    vxlan: 
+      physnets:
+        <physnet_name>:
+          bridge: "<bridge_name>"
+          hosts:
+            "<minion_id>": "<interface_name>"
+      vxlan_group: "<multicast_group_address>"
+      tunnels:
+        <tunnel_name>:
+          vni_range: "<start_vni>:<end_vni>"
+
+  tunneling:
+    enable: "<true/false>"
+    tunnel_type: "<gre/vxlan>"
+    tunnel_bridge: "br-tun"
 
   networks:
     <network_name>:

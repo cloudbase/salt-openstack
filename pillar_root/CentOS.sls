@@ -44,6 +44,21 @@ packages:
   targetcli: targetcli
   python_pip: python-pip
   ntp: ntp
+  mysql_common: mariadb-libs.x86_64
+  mysql_server_core: mariadb-server.x86_64
+  mysql_client_core: mariadb.x86_64
+  glance_common: python-glance-store
+  glance_python: python-glance
+  nova_common: openstack-nova-common
+  nova_python: python-nova
+  neutron_python: python-neutron
+  apache_data: httpd.x86_64
+  apache_bin: httpd-tools.x86_64
+  python_memcache: python-memcache
+  cinder_python: python-cinder
+  heat_python: python-heat
+  heat_common: openstack-heat-common
+  openvswitch_common: openvswitch.x86_64
 
 services:
   mysql: mariadb
@@ -80,6 +95,7 @@ services:
   openstack_promisc_interfaces: openstack-promisc-interfaces
   network_manager: NetworkManager
   network: network
+  openstack_cinder_losetup: openstack-losetup
 
 conf_files:
   mysql: "/etc/my.cnf"
@@ -101,3 +117,25 @@ conf_files:
   openstack_dashboard: "/etc/openstack-dashboard/local_settings"
   openstack_promisc_interfaces: "/var/lib/openvswitch/openstack-promisc-interfaces.sh"
   openstack_promisc_interfaces_systemd: "/lib/systemd/system/openstack-promisc-interfaces.service"
+  openstack_cinder_losetup: "/lib/systemd/system/openstack-losetup.service"
+
+lib:
+  mysql: "/var/lib/mysql"
+  rabbitmq: "/var/lib/rabbitmq"
+  keystone: "/var/lib/keystone"
+  glance: "/var/lib/glance"
+  nova: "/var/lib/nova"
+  neutron: "/var/lib/neutron"
+  horizon: "/var/lib/openstack-dashboard"
+  cinder: "/var/lib/cinder"
+  heat: "/var/lib/heat"
+
+etc:
+  rabbitmq: "/etc/rabbitmq"
+  keystone: "/etc/keystone"
+  glance: "/etc/glance"
+  nova: "/etc/nova"
+  neutron: "/etc/neutron"
+  horizon: "/etc/httpd"
+  cinder: "/etc/cinder"
+  heat: "/etc/heat"

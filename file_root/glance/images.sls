@@ -11,5 +11,9 @@ openstack_image_{{ image_name }}:
     - connection_auth_url: {{ salt['pillar.get']('keystone:services:keystone:endpoint:internalurl').format(get_candidate(salt['pillar.get']('keystone:services:keystone:endpoint:endpoint_host_sls'))) }}
 {% for image_attr in salt['pillar.get']('glance:images:%s' % image_name) %}
     - {{ image_attr }}: {{ salt['pillar.get']('glance:images:%s:%s' % (image_name, image_attr)) }}
+{% if salt['pillar.get']('reset').lower() != None and salt['pillar.get']('reset').lower() == 'soft' %}
+    - require:
+      - cmd: glance_reset
+{% endif %}
 {% endfor %}
 {% endfor %}

@@ -6,6 +6,8 @@ db_engine: "mysql"
 
 queue_engine: "rabbit"
 
+reset: "<soft/hard>"
+
 hosts: 
   "<minion_id>": "<minion_management_ip_address>"
 

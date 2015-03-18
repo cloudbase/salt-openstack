@@ -1,8 +1,8 @@
 packages:
   linux_headers: linux-headers-{{ grains['kernelrelease'] }}
-  mysql_client: mysql-client
+  mysql_client: mysql-client-5.5
   python_mysql_library: python-mysqldb
-  mysql_server: mysql-server
+  mysql_server: mysql-server-5.5
   rabbitmq: rabbitmq-server
   keystone: keystone
   glance: glance
@@ -47,6 +47,22 @@ packages:
   sysfsutils: sysfsutils
   ubuntu-cloud-keyring: ubuntu-cloud-keyring
   ntp: ntp
+  mysql_common: mysql-common
+  mysql_server_core: mysql-server-core-5.5
+  mysql_client_core: mysql-client-core-5.5
+  glance_common: glance-common
+  glance_python: python-glance
+  nova_common: nova-common
+  nova_python: python-nova
+  neutron_python: python-neutron
+  apache_data: apache2-data
+  apache_bin: apache2-bin
+  python_memcache: python-memcache
+  cinder_python: python-cinder
+  cinder_common: cinder-common
+  heat_python: python-heat
+  heat_common: heat-common
+  openvswitch_common: openvswitch-common
 
 services:
   mysql: mysql
@@ -77,6 +93,7 @@ services:
   heat_api_cfn: heat-api-cfn
   heat_engine: heat-engine
   ntp: ntp
+  openstack_cinder_losetup: openstack-losetup
 
 conf_files:
   mysql: "/etc/mysql/my.cnf"
@@ -100,3 +117,27 @@ conf_files:
   heat: "/etc/heat/heat.conf"
   openstack_promisc_interfaces: "/etc/init/openstack-promisc-interfaces.conf"
   br_proxy_script: "/root/set-br-proxy.sh"
+  openstack_cinder_losetup: "/etc/init/openstack-cinder-losetup.conf"
+  cloud_archive_juno: "/etc/apt/sources.list.d/cloudarchive-juno.list"
+
+lib:
+  mysql: "/var/lib/mysql"
+  rabbitmq: "/var/lib/rabbitmq"
+  keystone: "/var/lib/keystone"
+  glance: "/var/lib/glance"
+  nova: "/var/lib/nova"
+  neutron: "/var/lib/neutron"
+  horizon: "/var/lib/openstack-dashboard"
+  cinder: "/var/lib/cinder"
+  heat: "/var/lib/heat"
+
+etc:
+  mysql: "/etc/mysql"
+  rabbitmq: "/etc/rabbitmq"
+  keystone: "/etc/keystone"
+  glance: "/etc/glance"
+  nova: "/etc/nova"
+  neutron: "/etc/neutron"
+  horizon: "/etc/apache2"
+  cinder: "/etc/cinder"
+  heat: "/etc/heat"

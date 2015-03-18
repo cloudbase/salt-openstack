@@ -20,49 +20,7 @@ cinder_olso_db_python_install:
   pkg:
     - installed
     - name: "{{ salt['pillar.get']('packages:olso_db_python') }}"
-{% endif %}
 
-{% if salt['cmd.run']('losetup -a | grep "%s"' % salt['pillar.get']('cinder:volumes_path')) %}
-cinder_vg_delete:
-  cmd:
-    - run
-    - name: vgremove -f {{ salt['pillar.get']('cinder:volumes_group_name') }}
-
-cinder_pv_delete:
-  cmd:
-    - run
-    - name: pvremove -y {{ salt['pillar.get']('cinder:loopback_device') }}
-
-cinder_lv_delete:
-  cmd:
-    - run
-    - name: 'losetup -d {{ salt['pillar.get']('cinder:loopback_device') }}'
-{% endif %}
-
-{% set count = ((salt['pillar.get']('cinder:volumes_group_size')|int)*(2**30)/4096)|int %}
-dd_cmd:
-  cmd:
-    - run
-    - name: dd if=/dev/zero of={{ salt['pillar.get']('cinder:volumes_path') }} bs=4K count={{ (count+(0.03*count))|int }}
-
-cinder_volumes:
-  file:
-    - managed
-    - name: {{ salt['pillar.get']('cinder:volumes_path') }}
-    - user: cinder
-    - group: cinder
-    - mode: 644
-    - require: 
-      - cmd: dd_cmd
-
-losetup_cmd:
-  cmd:
-    - run
-    - name: losetup {{ salt['pillar.get']('cinder:loopback_device') }} {{ salt['pillar.get']('cinder:volumes_path') }}
-    - require: 
-      - file: cinder_volumes
-
-{% if grains['os'] == 'CentOS' %}
 lvm_service:
   service:
     - running
@@ -72,15 +30,49 @@ lvm_service:
       - pkg: lvm_install
 {% endif %}
 
-cinder_volumes_create:
+{% set count = ((salt['pillar.get']('cinder:volumes_group_size')|int)*(2**30)/4096)|int %}
+cinder_volumes_dd_file:
   cmd:
     - run
-    - name: |
-        set -e
-        pvcreate {{ salt['pillar.get']('cinder:loopback_device') }}
-        vgcreate {{ salt['pillar.get']('cinder:volumes_group_name') }} {{ salt['pillar.get']('cinder:loopback_device') }}
+    - name: dd if=/dev/zero of={{ salt['pillar.get']('cinder:volumes_path') }} bs=4K count={{ (count+(0.03*count))|int }}
+    - unless: losetup {{ salt['pillar.get']('cinder:loopback_device') }}
+{% if grains['os'] == 'CentOS' %}
+    - require:
+      - service: lvm_service
+{% endif %}
+  file:
+    - managed
+    - name: {{ salt['pillar.get']('cinder:volumes_path') }}
+    - user: cinder
+    - group: cinder
+    - mode: 644
+    - unless: losetup {{ salt['pillar.get']('cinder:loopback_device') }}
     - require: 
-      - cmd: losetup_cmd
+      - cmd: cinder_volumes_dd_file
+
+cinder_lv_create:
+  cmd:
+    - run
+    - name: losetup {{ salt['pillar.get']('cinder:loopback_device') }} {{ salt['pillar.get']('cinder:volumes_path') }}
+    - unless: losetup {{ salt['pillar.get']('cinder:loopback_device') }}
+    - require: 
+      - file: cinder_volumes_dd_file
+
+cinder_pv_create:
+  cmd:
+    - run
+    - name: pvcreate {{ salt['pillar.get']('cinder:loopback_device') }}
+    - unless: pvdisplay {{ salt['pillar.get']('cinder:loopback_device') }}
+    - require:
+      - cmd: cinder_lv_create
+
+cinder_vg_create:
+  cmd:
+    - run
+    - name: vgcreate {{ salt['pillar.get']('cinder:volumes_group_name') }} {{ salt['pillar.get']('cinder:loopback_device') }}
+    - unless: vgdisplay {{ salt['pillar.get']('cinder:volumes_group_name') }}
+    - require: 
+      - cmd: cinder_pv_create
 
 cinder_conf:
   file:
@@ -129,7 +121,7 @@ cinder_conf:
 cinder_volumes_systemd_service:
   file:
     - managed
-    - name: "/lib/systemd/system/openstack-losetup.service"
+    - name: {{ salt['pillar.get']('conf_files:openstack_cinder_losetup') }}
     - user: root
     - group: root
     - mode: 644
@@ -137,12 +129,12 @@ cinder_volumes_systemd_service:
       - ini: cinder_volumes_systemd_service
   ini:
     - options_present
-    - name: "/lib/systemd/system/openstack-losetup.service"
+    - name: {{ salt['pillar.get']('conf_files:openstack_cinder_losetup') }}
     - sections:
         Unit:
           Description: "Setup cinder-volume loop device"
           DefaultDependencies: "false"
-          Before: "openstack-cinder-volume.service"
+          Before: "{{ salt['pillar.get']('services:cinder_volume') }}.service"
           After: "local-fs.target"
         Service:
           Type: "oneshot"
@@ -151,22 +143,21 @@ cinder_volumes_systemd_service:
           TimeoutSec: "60"
           RemainAfterExit: "yes"
         Install:
-          RequiredBy: "openstack-cinder-volume.service"
+          RequiredBy: "{{ salt['pillar.get']('services:cinder_volume') }}.service"
     - require:
-      - cmd: cinder_volumes_create
+      - cmd: cinder_vg_create
 
-cinder_volumes_losetup_running:
-  service:
-    - running
-    - enable: True
-    - name: openstack-losetup
+cinder_volumes_losetup_enabled:
+  service.enabled:
+    - name: "{{ salt['pillar.get']('services:openstack_cinder_losetup') }}"
     - require:
       - file: cinder_volumes_systemd_service
+
 {% elif grains['os'] == 'Ubuntu' %}
 mount_cinder_volumes_upstart_job:
   file: 
     - managed
-    - name: /etc/init/openstack-cinder-losetup.conf
+    - name: "{{ salt['pillar.get']('conf_files:openstack_cinder_losetup') }}"
     - user: root
     - group: root
     - mode: 644
@@ -175,7 +166,9 @@ mount_cinder_volumes_upstart_job:
         start on started {{ salt['pillar.get']('services:cinder_volume') }}
 
         script
-            losetup -f {{ salt['pillar.get']('cinder:volumes_path') }} && vgchange -a y {{ salt['pillar.get']('cinder:volumes_group_name') }} && service {{ salt['pillar.get']('services:cinder_volume') }} restart
+            if [ "`losetup -a | grep {{ salt['pillar.get']('cinder:volumes_path') }}`" = "" ]; then
+                losetup -f {{ salt['pillar.get']('cinder:volumes_path') }} && vgchange -a y {{ salt['pillar.get']('cinder:volumes_group_name') }} && service {{ salt['pillar.get']('services:cinder_volume') }} restart
+            fi
         end script
 {% endif %}
 
@@ -189,7 +182,7 @@ cinder_volume_service:
     - watch:
       - file: cinder_conf
       - ini: cinder_conf
-      - cmd: cinder_volumes_create
+      - cmd: cinder_vg_create
 
 cinder_iscsi_target_service:
   service:
@@ -204,7 +197,7 @@ cinder_iscsi_target_service:
     - watch:
       - file: cinder_conf
       - ini: cinder_conf
-      - cmd: cinder_volumes_create
+      - cmd: cinder_vg_create
 
 cinder_volume_wait:
   cmd:

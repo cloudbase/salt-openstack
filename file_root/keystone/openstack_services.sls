@@ -9,6 +9,10 @@
     - description: {{ salt['pillar.get']('keystone:services:%s:description' % service_name) }}
     - connection_token: {{ salt['pillar.get']('keystone:admin_token') }}
     - connection_endpoint: {{ salt['pillar.get']('keystone:services:keystone:endpoint:adminurl').format(get_candidate(salt['pillar.get']('keystone:services:keystone:endpoint:endpoint_host_sls'))) }}
+{% if salt['pillar.get']('reset').lower() != None and salt['pillar.get']('reset').lower() == 'soft' %}
+    - require:
+      - cmd: keystone_reset
+{% endif %}
 
 {{ service_name }}_endpoint:
   keystone:

@@ -97,7 +97,8 @@ bridge_{{ bridge }}_{{ count }}_create:
       - service: openvswitch_switch_running
 
 {% if salt['pillar.get']('neutron:single_nic:enable').lower() == "true" %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
 {{ bridge }}_{{ count }}_veth_create:
   cmd:
     - run
@@ -174,7 +175,8 @@ promisc_interfaces_upstart_job:
             ip link set br-proxy up promisc on
 {% set count = 1 %}
 {% for bridge in bridges %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
             ip link add proxy-veth{{ count }} type veth peer name veth{{ count }}-br-proxy
             ip link set veth{{ count }}-br-proxy up promisc on
             ip link set proxy-veth{{ count }} up promisc on
@@ -229,7 +231,11 @@ br-proxy_script:
 
         ifdown {{ salt['pillar.get']('neutron:single_nic:interface') }} && ifup {{ salt['pillar.get']('neutron:single_nic:interface') }}
         ifup br-proxy
-        ovs-vsctl add-port br-proxy {{ salt['pillar.get']('neutron:single_nic:interface') }}
+        if [ "`ovs-vsctl list-ports br-proxy | grep {{ salt['pillar.get']('neutron:single_nic:interface') }}`" = "" ]; then
+            ovs-vsctl add-port br-proxy {{ salt['pillar.get']('neutron:single_nic:interface') }}
+        else
+            echo "{{ salt['pillar.get']('neutron:single_nic:interface') }} was already added to br-proxy"
+        fi
 
 {% endif %}
 
@@ -249,7 +255,8 @@ openstack_promisc_interfaces_script:
         ip link set {{ salt['pillar.get']('neutron:single_nic:interface') }} up promisc on
 {% set count = 1 %}
 {% for bridge in bridges %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
         ip link add proxy-veth{{ count }} type veth peer name veth{{ count }}-br-proxy
         ip link set veth{{ count }}-br-proxy up promisc on
         ip link set proxy-veth{{ count }} up promisc on
@@ -259,7 +266,8 @@ openstack_promisc_interfaces_script:
 {% else %}
 {% set count = 1 %}
 {% for bridge in bridges %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
 {% if bridges[bridge] != None and bridges[bridge] != "" %}
         ip link set {{ bridges[bridge] }} up promisc on
 {% endif %}
@@ -300,6 +308,7 @@ openstack_promisc_interfaces_enable:
       - file: openstack_promisc_interfaces_systemd_service
 
 {% if salt['pillar.get']('neutron:single_nic:enable').lower() == "true" %}
+{% if not salt['file.file_exists']("/etc/sysconfig/network-scripts/ifcfg-br-proxy") %}
 br-proxy_ovs_bridge_network_script: 
   file: 
     - managed
@@ -347,10 +356,12 @@ br-proxy_ovs_bridge_network_script:
         OVS_BRIDGE=br-proxy
         ONBOOT=yes
         NOZEROCONF=yes
+{% endif %}
 
 {% set count = 1 %}
 {% for bridge in bridges %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
 proxy-veth{{ count }}_ovs_port_network_script:
   file:
     - managed
@@ -378,7 +389,8 @@ proxy-veth{{ count }}_ovs_port_network_script:
 {% else %}
 
 {% for bridge in bridges %}
-{% if bridge != salt['pillar.get']('neutron:intergration_bridge', default='br-int') %}
+{% if bridge not in [ salt['pillar.get']('neutron:integration_bridge', default='br-int'), 
+                      salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun') ] %}
 
 {{ bridge }}_ovs_bridge_network_script:
   file:
