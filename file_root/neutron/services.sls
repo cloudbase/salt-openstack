@@ -39,6 +39,11 @@ neutron_metadata_agent_install:
   pkg: 
     - installed
     - name: "{{ salt['pillar.get']('packages:neutron_metadata_agent') }}"
+{% elif grains['os'] == 'CentOS' %}
+neutron_services_install: 
+  pkg: 
+    - installed
+    - name: "{{ salt['pillar.get']('packages:neutron_server') }}"
 {% endif %}
 
 conntrack_install: 

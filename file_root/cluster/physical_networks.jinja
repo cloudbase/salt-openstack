@@ -1,38 +1,81 @@
 
+# type_drivers         - array that holds all defined neutron ml2 type drivers
+# tenant_network_types - array that holds all defined neutron tenant network types
+
+{% set type_drivers = [] %}
+{% set tenant_network_types = [] %}
+{% for type_driver in salt['pillar.get']('neutron:type_drivers', default=()) %}
+  {% if type_driver.lower() in ['local', 'flat', 'vlan', 'gre', 'vxlan'] %}
+    {% do type_drivers.append(type_driver) %}
+    {% if type_driver.lower() != 'flat' %}
+      {% do tenant_network_types.append(type_driver) %}
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+
+# gre_tunnel_id_ranges - array that holds defined gre tunnel_id ranges
+
+{% set gre_tunnel_id_ranges = [] %}
+{% for tunnel in salt['pillar.get']('neutron:type_drivers:gre:tunnels') %}
+  {% do gre_tunnel_id_ranges.append(salt['pillar.get']('neutron:type_drivers:gre:tunnels:%s:tunnel_id_ranges' % tunnel)) %}
+{% endfor %}
+
+
+# vxlan_tunnels_vni_ranges - array that holds defined vxlan tunnels vni ranges
+
+{% set vxlan_tunnels_vni_ranges = [] %}
+{% for tunnel in salt['pillar.get']('neutron:type_drivers:vxlan:tunnels') %}
+  {% do vxlan_tunnels_vni_ranges.append(salt['pillar.get']('neutron:type_drivers:vxlan:tunnels:%s:vni_range' % tunnel)) %}
+{% endfor %}
+
+
+# mappings - array that holds "<physnet_name>:<bridge_name>" bridge mappings to set up openvswitch 
 
 {% set mappings = [] %}
-{% for network_type in ('flat', 'vlan') %}
-{% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
-{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
-{% do mappings.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet))))) %}
-{% endif %}
-{% endfor %}
+{% for network_type in ('flat', 'vlan', 'gre', 'vxlan') %}
+  {% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
+    {% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
+      {% do mappings.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet))))) %}
+    {% endif %}
+  {% endfor %}
 {% endfor %}
 
+
+# vlan_networks - array that holds vlan networks configurations to set up openvswitch
+#                 an element from the array has the form: "<physnet_name>:<vlan_rage>"
 
 {% set vlan_networks = [] %}
 {% for physnet in salt['pillar.get']('neutron:type_drivers:vlan:physnets', default=()) %}
-{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:hosts' % physnet, default=()) %}
-{% do vlan_networks.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:vlan_range' % physnet, default=())))) %}
-{% endif %}
+  {% if grains['id'] in salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:hosts' % physnet, default=()) %}
+    {% do vlan_networks.append(':'.join((physnet, salt['pillar.get']('neutron:type_drivers:vlan:physnets:%s:vlan_range' % physnet, default=())))) %}
+  {% endif %}
 {% endfor %}
 
+
+# flat_networks - array that holds physnets declarations used for flat networks
 
 {% set flat_networks = [] %}
 {% for physnet in salt['pillar.get']('neutron:type_drivers:flat:physnets', default=()) %}
-{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:flat:physnets:%s:hosts' % physnet) %}
-{% do flat_networks.append(physnet) %}
-{% endif %}
+  {% if grains['id'] in salt['pillar.get']('neutron:type_drivers:flat:physnets:%s:hosts' % physnet) %}
+    {% do flat_networks.append(physnet) %}
+  {% endif %}
 {% endfor %}
 
 
-{% set bridges = { salt['pillar.get']('neutron:intergration_bridge', default='br-int'): None } %}
-{% for network_type in ('flat', 'vlan') %}
-{% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
-{% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
-{% do bridges.update({ salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet)): 
-                       salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts:%s' % (network_type, physnet, grains['id'])) }) %}
+# bridges - dictionary that holds bridges and the bridged interfaces
+#           it is used to configure openvswitch
+
+{% set bridges = { salt['pillar.get']('neutron:integration_bridge', default='br-int'): None } %}
+{% if salt['pillar.get']('neutron:tunneling:enable').lower() == 'true' %}
+  {% do bridges.update({ salt['pillar.get']('neutron:tunneling:tunnel_bridge', default='br-tun'): None }) %}
 {% endif %}
-{% endfor %}
+{% for network_type in ('flat', 'vlan', 'gre', 'vxlan') %}
+  {% for physnet in salt['pillar.get']('neutron:type_drivers:%s:physnets' % network_type, default=()) %}
+    {% if grains['id'] in salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts' % (network_type, physnet)) %}
+      {% do bridges.update({ salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:bridge' % (network_type, physnet)): 
+                             salt['pillar.get']('neutron:type_drivers:%s:physnets:%s:hosts:%s' % (network_type, physnet, grains['id'])) }) %}
+    {% endif %}
+  {% endfor %}
 {% endfor %}
 

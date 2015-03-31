@@ -28,9 +28,9 @@ ubuntu_cloud_keyring_install:
 cloudarchive_juno:
   file:
     - append
-    - name: /etc/apt/sources.list.d/cloudarchive-juno.list
+    - name: {{ salt['pillar.get']('conf_files:cloud_archive_juno') }}
     - text: "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
-    - unless: cat /etc/apt/sources.list.d/cloudarchive-juno.list | egrep "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
+    - unless: cat {{ salt['pillar.get']('conf_files:cloud_archive_juno') }} | egrep "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
     - user: root
     - group: root
     - mode: 644

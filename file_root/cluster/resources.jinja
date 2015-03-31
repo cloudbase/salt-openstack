@@ -1,33 +1,72 @@
 
+# roles - array of roles for a specific minion
 
 {% set roles = [] %}
 {% for role in salt['pillar.get']('roles', default=()) %}
-{% if role in ['controller', 'network'] and grains['id'] == salt['pillar.get']('%s' % role) %}
-{% do roles.append(role) %}
-{% else %}
-{% if grains['id'] in salt['pillar.get']('%s' % role) %}
-{% do roles.append(role) %}
-{% endif %}
-{% endif %}
+  {% if role in ['controller', 'network'] and grains['id'] == salt['pillar.get']('%s' % role) %}
+    {% do roles.append(role) %}
+  {% else %}
+    {% if grains['id'] in salt['pillar.get']('%s' % role) %}
+      {% do roles.append(role) %}
+    {% endif %}
+  {% endif %}
 {% endfor %}
 
+
+# formulas - array of salt states to be executed on a specific minion
 
 {% set formulas = [] %}
-{% for role in roles %}
-{% for formula in salt['pillar.get']('sls:%s' % role, default=()) %}
-{% if formula not in formulas %}
-{% do formulas.append(formula) %}
+{% if salt['pillar.get']('reset').lower() != None and salt['pillar.get']('reset').lower() == 'soft' %}
+  {% if grains['id'] == salt['pillar.get']('controller') %}
+    {% do formulas.append('reset.soft.controller') %}
+  {% endif  %}
+  {% if grains['id'] == salt['pillar.get']('network') %}
+    {% do formulas.append('reset.soft.openvswitch') %}
+  {% endif %}
+  {% if grains['id'] in salt['pillar.get']('compute') %}
+    {% if 'reset.soft.openvswitch' not in formulas %}
+      {% do formulas.append('reset.soft.openvswitch') %}
+    {% endif %}
+  {% endif %}
+{% elif salt['pillar.get']('reset').lower() != None and salt['pillar.get']('reset').lower() == 'hard' %}
+  {% if grains['id'] == salt['pillar.get']('controller') %}
+    {% do formulas.append('reset.hard.controller') %}
+  {% endif  %}
+  {% if grains['id'] == salt['pillar.get']('network') %}
+    {% do formulas.append('reset.hard.network') %}
+  {% endif  %}
+  {% if grains['id'] in salt['pillar.get']('compute') %}
+    {% do formulas.append('reset.hard.compute') %}
+  {% endif  %}
+  {% if grains['id'] in salt['pillar.get']('storage') %}
+    {% do formulas.append('reset.hard.storage') %}
+  {% endif  %}
+  {% do formulas.append('reset.hard') %}
 {% endif %}
+{% do formulas.append('generics.headers') %}
+{% do formulas.append('generics.python_dependencies') %}
+{% do formulas.append('generics.repositories') %}
+{% do formulas.append('generics.system_update') %}
+{% do formulas.append('generics.openstack_packages') %}
+{% for role in roles %}
+  {% for formula in salt['pillar.get']('sls:%s' % role, default=()) %}
+    {% if formula not in formulas %}
+      {% do formulas.append(formula) %}
+    {% endif %}
+  {% endfor %}
 {% endfor %}
-{% endfor %}
+{% do formulas.append('postinstall.files') %}
 
+
+# get_candidate - macro to get the management ip address associated to a minion
+#                 sls received as parameter has to be set for execution on that particular minion
 
 {% macro get_candidate(sls) -%}
-{% for role in salt['pillar.get']('roles' , default=()) %}
-{% if sls in salt['pillar.get']('sls:%s' % role) %}
-{% if role in ['controller', 'network'] %}
+  {% for role in salt['pillar.get']('roles' , default=()) %}
+    {% if sls in salt['pillar.get']('sls:%s' % role) %}
+      {% if role in ['controller', 'network'] %}
 {{ salt['pillar.get']('hosts:%s' % pillar[role]) }}{% elif grains['id'] in salt['pillar.get']('%s' % role) %}
 {{ salt['pillar.get']('hosts:%s' % grains['id']) }}{% endif %}
-{% endif %}
-{% endfor %}
+    {% endif %}
+  {% endfor %}
 {%- endmacro %}
