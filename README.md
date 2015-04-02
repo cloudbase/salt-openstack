@@ -170,6 +170,25 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
  The OpenStack release which will be installed. At the moment only: ``juno`` and ``icehouse``.
 
+- Reset type to be applied on the targeted minion(s)
+
+        reset
+
+ Reset feature is used to remove or reconfigure a previously deployed OpenStack environment. This key accepts one of the following values: ``hard`` or ``soft``, depending on the required reset type.
+
+ Reset types details:
+
+  - ``Hard`` reset: It should be used when a previously deployed OpenStack is broken / nonfunctional. 
+
+    **WARNING**: Hard reset states will purge all OpenStack packages and their dependencies (MySQL, RabbitMQ, OpenvSwitch, Apache and Memcached). This **MUST** not be used if there are, on the minion, other services using these dependencies.
+
+  - ``Soft`` reset: It should be used when a previously deployed OpenStack is functional (all OpenStack services are up and running) and only reconfiguration is needed (based on the new pillar parameters).
+
+    - Soft reset states will **NOT** run, if all OpenStack services are not running.
+    - Soft reset states will execute commands on the controller node that will delete (from every tenant) the following elements: heat stacks, cinder volumes, nova instances, neutron networks / subnets / routers, glance images, etc.
+
+  **NOTE**: Reset feature will not reconfigure single NIC Openstack environment to multi-NIC OpenStack environment.
+
 - OpenStack nodes
 
  Add the management ip address of all your OpenStack nodes under the **hosts** section. Use the following structure:
@@ -248,9 +267,9 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         neutron:type_drivers:<network_type>:physnets
 
- The physnet is a mapping between an arbitrary name and the network bridge from specified minion machine. Configuration is made that will map the arbitrary name with the network bridge. Current saltstack scripts support only flat and vlan network types.
+ The physnet is a mapping between an arbitrary name and the network bridge from specified minion machine. Configuration is made that will map the arbitrary name with the network bridge. Current saltstack scripts support the following network types: ``vxlan``, ``vlan``, ``gre`` and ``flat``.
 
- Add flat physnets under **neutron:type_drivers:flat:physnets** section using the following structure:
+ Add flat, vxlan or gre physnets under **neutron:type_drivers:&lt;flat/vxlan/gre&gt;:physnets** section using the following structure:
 
         <physnet_name>: 
           bridge: "<bridge_name>"
@@ -264,6 +283,34 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
           vlan_range: "<start_vlan>:<end_vlan>"
           hosts:
             <minion_id>: "<interface_name>"
+
+- Boolean flag to enable tunneling for OpenStack
+
+        neutron:tunneling:enable
+
+- The following settings will be applied only if ``neutron:tunneling:enable`` is set to ``True``
+
+  - Neutron tunnel type. It takes one of the values: ``gre`` or ``vxlan``
+
+          neutron:tunneling:tunnel_type
+
+  - ``VXLAN`` and ``GRE`` tunnels definitions
+
+    ``VXLAN`` tunnels can be defined under **neutron:type_drivers:vxlan:tunnels** section using the following structure:
+
+          tunnels:
+            <tunnel_name>:
+              tunnel_id_ranges: "<start_tunnel_id>:<end_tunnel_id>"
+
+    ``VXLAN`` multicast group address 
+
+          neutron:type_drivers:vxlan:vxlan_group
+
+    ``GRE`` tunnels can be defined under **neutron:type_drivers:gre:tunnels** section using the following structure:
+
+          tunnels:
+            <tunnel_name>:
+              tunnel_id_ranges: "<start_tunnel_id>:<end_tunnel_id>"
 
 - Initial networks to be created within OpenStack
 
