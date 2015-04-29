@@ -68,6 +68,8 @@ nova_conf:
           my_ip: "{{ get_candidate('nova') }}"
           vncserver_listen: "{{ get_candidate('nova') }}"
           vncserver_proxyclient_address: "{{ get_candidate('nova') }}"
+          cpu_allocation_ratio: {{ salt['pillar.get']('nova:cpu_allocation_ratio') }}
+          ram_allocation_ratio: {{ salt['pillar.get']('nova:ram_allocation_ratio') }}
 {% if pillar['cluster_type'] == 'juno' %}
         glance:
           host: "{{ get_candidate('glance') }}"

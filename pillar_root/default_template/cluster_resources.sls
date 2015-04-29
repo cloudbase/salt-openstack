@@ -69,12 +69,16 @@ glance:
       user: "<user_name>"
       tenant: "<tenant_name>"
 
-files:
-  keystone_admin:
-    path: "<path_to_keystone_rc>"
-
 cinder:
   volumes_group_name: "cinder-volumes"
   volumes_path: "/var/lib/cinder/cinder-volumes"
   volumes_group_size: "<volumes_group_size_in_gigabytes>"
   loopback_device: "/dev/loop0"
+
+nova:
+  cpu_allocation_ratio: "16"
+  ram_allocation_ratio: "1.5"
+
+files:
+  keystone_admin:
+    path: "<path_to_keystone_rc>"
