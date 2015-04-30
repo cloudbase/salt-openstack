@@ -233,13 +233,22 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
  After glance is installed, the image is downloaded from the given ``<image_url>`` and uploaded to glance into the tenant ``<tenant_name>`` using the user with username ``<user_name>``. 
 
+- Value of the total cinder volumes group size given in gigabytes.
+
+        cinder:volumes_group_size
+
+- Value of the nova cpu allocation ratio configuration (defaults to 16).
+
+        nova:cpu_allocation_ratio
+
+- Value of the nova ram allocation ratio configuration (defaults to 1.5).
+
+        nova:ram_allocation_ratio
+
 - Absolute path where keystonerc for user admin will be saved on the salt-minion(s)
 
         files:keystone_admin:path
 
-- Value of the total cinder volumes group size given in gigabytes.
-
-        cinder:volumes_group_size
 
 ### 2.3 Edit network_resources.sls file
 
@@ -422,3 +431,48 @@ OpenStack is installed using SaltStack. Depending on your Linux distribution, ho
 
  - ``http://<minion_ip_address>/horizon`` for Ubuntu
  - ``http://<minion_ip_address>/dashboard`` for CentOS
+
+# How-To Section
+
+### 1. Run the SaltStack OpenStack states on a masterless minion
+
+For scenarios when just a single OpenStack all-in-one is needed, it is prefered to run the salt-scripts locally on a masterless minion machine.
+
+Steps on how to install and configure masterless minion machine:
+
+  - Install and configure a simple minion machine following instructions from ``section 1.3`` and ``section 1.4``.
+
+  - Instruct the minion to not look for a master machine when searching for ``file_root`` and ``pillar_root`` folders. This way, it searches locally for the salt-openstack states.
+
+        sudo sh -c "echo 'file_client: local' >> /etc/salt/minion"
+
+  - Clone the salt-openstack cloudbase git repository:
+
+        git clone https://github.com/cloudbase/salt-openstack.git
+
+  - Add / Update the following configuration options in ``/etc/salt/minion``.
+
+        pillar_roots:
+          openstack:
+            - <absolute_path_to_pillar_root>
+        file_roots:
+          openstack:
+            - <absolute_path_to_file_root>
+        jinja_trim_blocks: True
+        jinja_lstrip_blocks: True
+
+  - Stop the ``salt-minion`` daemon. Otherwise the minion attempts to connect to a master and it will fail.
+
+        sudo service salt-minion stop
+
+  - Follow instructions from ``section 2`` and set up OpenStack parameters, but on the masterless minion instead on the master machine.
+
+  - Set up ``top.sls`` file from ``pillar_root`` as described at the beginning of the ``section 3``. The masterless minion is the only one targeted when running the salt-openstack scripts.
+
+  - Run the salt-scripts commands as described in ``section 3``, but this time locally:
+
+        sudo salt-call --local saltutil.refresh_pillar
+        sudo salt-call --local saltutil.sync_all
+        sudo salt-call --local state.highstate
+
+  - OpenStack all-in-one is now installed on the masterless salt-minion machine.
