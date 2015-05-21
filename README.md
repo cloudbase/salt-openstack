@@ -230,6 +230,10 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
           copy_from: "<image_url>"
           user: "<user_name>"
           tenant: "<tenant_name>"
+          disk_format: "<raw,vhd,vmdk,vdi,iso,qcow2,aki,ari,ami>"
+          container_format: "<bare,ovf,aki,ari,ami,ova>"
+          is_public: "<True/False>"
+          protected: "<True/False>"
 
  After glance is installed, the image is downloaded from the given ``<image_url>`` and uploaded to glance into the tenant ``<tenant_name>`` using the user with username ``<user_name>``. 
 
