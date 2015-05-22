@@ -375,11 +375,12 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
           tenant: <tenant_name>
           description: '<short_description>'
           rules:
-            - protocol: <icmp/tcp/udp>
-              direction: <egress/ingress>
-              from-port: <start_port>
-              to-port: <end_port>
-              cidr: '<cidr>'
+            - direction: "<egress/ingress>"
+              ethertype: "<IPv4/IPv6>"
+              protocol: "<icmp/tcp/udp>"
+              port_range_min: "<start_port>"
+              port_range_max: "<end_port>"
+              remote_ip_prefix: "<cidr>"
 
 
 ## 3. Install OpenStack

@@ -274,7 +274,6 @@ def router_present(name=None,
             return _update_failed(name, 'router')
     return _no_change(name, 'router')
 
-
 def security_group_present(name=None,
                            description=None,
                            rules=[],
@@ -287,38 +286,110 @@ def security_group_present(name=None,
     description
         The description of the security group
     rules
-        list of rules the security group has
+        list of rules to be added to the given security group
     '''
 
-    existing_sec_group = _neutron_module_call(
-        'list_security_groups', name=name, **connection_args)
-    if not existing_sec_group:
-        security_group_id = _neutron_module_call(
-                                    'create_security_group',
-                                    name=name,
-                                    description=description,
-                                    **connection_args)
-    else:
-        security_group_id = existing_sec_group[name]['id']
-
-    for rule in rules:
-        start_port = rule['from-port'] if rule['from-port'] != 'None' else None
-        end_port = rule['to-port'] if rule['to-port'] != 'None' else None
-        _neutron_module_call(
-            'create_security_group_rule',
-            security_group_id=security_group_id,
-            direction=rule['direction'],
-            protocol=rule['protocol'],
-            ethertype='ipv4',
-            port_range_min=start_port,
-            port_range_max=end_port,
-            remote_ip_prefix=rule['cidr'],
+    # If the user is an admin, he's able to see the security groups from
+    # other tenants. In this case, we'll use the tenant id to get an existing
+    # security group.
+    tenant_name = connection_args['connection_tenant']
+    try:
+        tenant_id = __salt__['keystone.tenant_get'](
+            name=tenant_name, **connection_args)[tenant_name]['id']
+    except:
+        tenant_id = None
+        LOG.debug('Cannot get the tenant id. User {0} is not an admin.'.format(
+            connection_args['connection_user']))
+    if tenant_id:
+        security_group = _neutron_module_call(
+            'list_security_groups', name=name, tenant_id=tenant_id,
             **connection_args)
+    else:
+        security_group = _neutron_module_call(
+            'list_security_groups', name=name, **connection_args)
 
-    created_security_group = _neutron_module_call(
-        'list_security_groups', name=name, **connection_args)
-    return _created(name, 'security_group', created_security_group[name])
+    if not security_group:
+        # Create the security group as it doesn't exist already.
+        security_group_id = _neutron_module_call('create_security_group',
+                                                 name=name,
+                                                 description=description,
+                                                 **connection_args)
+    else:
+        security_group_id = security_group[name]['id']
 
+    # Set the missing rules attributes (in case the user didn't specify them
+    # in pillar) to some default values.
+    rules_attributes_defaults = {
+        'direction': 'ingress',
+        'ethertype': 'IPv4',
+        'protocol': 'TCP',
+        'port_range_min': None,
+        'port_range_max': None,
+        'remote_ip_prefix': None
+    }
+    for rule in rules:
+        for attribute in rules_attributes_defaults.keys():
+            if not rule.has_key(attribute):
+                rule[attribute] = rules_attributes_defaults[attribute]
+
+    # Remove all the duplicates rules given by the user in pillar.
+    unique_rules = []
+    for rule in rules:
+        if rule not in unique_rules:
+            unique_rules.append(rule)
+
+    # Get the existing security group rules.
+    existing_rules = _neutron_module_call(
+        'list_security_groups',
+        id=security_group_id,
+        **connection_args)[name]['security_group_rules']
+
+    new_rules = {}
+    for rule in unique_rules:
+        rule_found = False
+        for existing_rule in existing_rules:
+            attributes_match = True
+            # Compare the attributes of the existing security group rule with
+            # the attributes of the rule that we want to add.
+            for attribute in rules_attributes_defaults.keys():
+                existing_attribute = '' if not existing_rule[attribute] \
+                                        else str(existing_rule[attribute]).lower()
+                attribute = '' if not rule[attribute] \
+                               else str(rule[attribute]).lower()
+                if existing_attribute != attribute:
+                    attributes_match = False
+                    break
+            if attributes_match:
+                rule_found = True
+                break
+        if rule_found:
+            # Skip adding the rule as it already exists.
+            continue
+        rule_index = len(new_rules) + 1
+        new_rules.update({'Rule {0}'.format(rule_index): rule})
+        _neutron_module_call('create_security_group_rule',
+                             security_group_id=security_group_id,
+                             direction=rule['direction'],
+                             ethertype=rule['ethertype'],
+                             protocol=rule['protocol'],
+                             port_range_min=rule['port_range_min'],
+                             port_range_max=rule['port_range_max'],
+                             remote_ip_prefix=rule['remote_ip_prefix'],
+                             **connection_args)
+
+    if not security_group:
+        # The security group didn't exist. It was created and specified
+        # rules were added to it.
+        security_group = _neutron_module_call('list_security_groups',
+                                              id=security_group_id,
+                                              **connection_args)[name]
+        return _created(name, 'security_group', security_group)
+    if len(new_rules) == 0:
+        # Security group already exists and specified rules are already
+        # present.
+        return _no_change(name, 'security_group')
+    # Security group already exists, but the specified rules were added to it.
+    return _updated(name, 'security_group', {'New Rules': new_rules})
 
 def _created(name, resource, resource_definition):
     changes_dict = {'name': name,
@@ -327,6 +398,12 @@ def _created(name, resource, resource_definition):
                     'comment': '{0} {1} created'.format(resource, name)}
     return changes_dict
 
+def _updated(name, resource, resource_definition):
+    changes_dict = {'name': name,
+                    'changes': resource_definition,
+                    'result': True,
+                    'comment': '{0} {1} updated'.format(resource, name)}
+    return changes_dict
 
 def _no_change(name, resource, test=False):
     changes_dict = {'name': name,
