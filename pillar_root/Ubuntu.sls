@@ -1,143 +1,357 @@
-packages:
-  linux_headers: linux-headers-{{ grains['kernelrelease'] }}
-  mysql_client: mysql-client-5.5
-  python_mysql_library: python-mysqldb
-  mysql_server: mysql-server-5.5
-  rabbitmq: rabbitmq-server
-  keystone: keystone
-  glance: glance
-  glance_pythonclient: python-glanceclient
-  cinder_api: cinder-api
-  cinder_scheduler: cinder-scheduler
-  cinder_volume: cinder-volume
-  lvm: lvm2
-  apache: apache2
-  apache_wsgi_module: libapache2-mod-wsgi
-  memcached: memcached
-  dashboard: openstack-dashboard
-  neutron_server: neutron-server
-  neutron_ml2: neutron-plugin-ml2
-  neutron_l2_agent: neutron-plugin-openvswitch-agent
-  openvswitch: openvswitch-switch
-  openvswitch_datapath_dkms: openvswitch-datapath-dkms
-  neutron_dhcp_agent: neutron-dhcp-agent
-  neutron_l3_agent: neutron-l3-agent
-  neutron_metadata_agent: neutron-metadata-agent
-  neutron_common: neutron-common
-  conntrack: conntrack
-  nova_api: nova-api
-  nova_conductor: nova-conductor
-  nova_scheduler: nova-scheduler
-  nova_cert: nova-cert
-  nova_consoleauth: nova-consoleauth
-  nova_novncproxy: nova-novncproxy
-  nova_compute: nova-compute
-  nova_compute_kvm: nova-compute-kvm
-  python_guestfs: python-guestfs
-  nova_pythonclient: python-novaclient
-  nova_ajax_console_proxy: nova-ajax-console-proxy
-  novnc: novnc
-  heat_api: heat-api
-  heat_api_cfn: heat-api-cfn
-  heat_engine: heat-engine
-  python_keystone: python-keystoneclient
-  neutron_pythonclient: python-neutronclient
-  cinder_pythonclient: python-cinderclient
-  heat_pythonclient: python-heatclient
-  sysfsutils: sysfsutils
-  ubuntu-cloud-keyring: ubuntu-cloud-keyring
-  ntp: ntp
-  mysql_common: mysql-common
-  mysql_server_core: mysql-server-core-5.5
-  mysql_client_core: mysql-client-core-5.5
-  glance_common: glance-common
-  glance_python: python-glance
-  nova_common: nova-common
-  nova_python: python-nova
-  neutron_python: python-neutron
-  apache_data: apache2-data
-  apache_bin: apache2-bin
-  python_memcache: python-memcache
-  cinder_python: python-cinder
-  cinder_common: cinder-common
-  heat_python: python-heat
-  heat_common: heat-common
-  openvswitch_common: openvswitch-common
+resources:
+  system:
+    conf:
+      series_persist_file: "/etc/salt/.openstack_series.persist"
+      cloudarchive: "/etc/apt/sources.list.d/cloudarchive-openstack.list"
+    packages:
+      - "python-software-properties"
+      - "ubuntu-cloud-keyring"
+    repositories:
+      openstack:
+        series:
+          juno: "deb http://ubuntu-cloud.archive.canonical.com/ubuntu trusty-updates/juno main"
 
-services:
-  mysql: mysql
-  rabbitmq: rabbitmq-server
-  keystone: keystone
-  glance_api: glance-api
-  glance_registry: glance-registry
-  cinder_api: cinder-api
-  cinder_scheduler: cinder-scheduler
-  cinder_volume: cinder-volume
-  iscsi_target: tgt
-  apache: apache2
-  memcached: memcached
-  neutron_server: neutron-server
-  neutron_l2_agent: neutron-plugin-openvswitch-agent
-  openvswitch: openvswitch-switch
-  neutron_dhcp_agent: neutron-dhcp-agent
-  neutron_l3_agent: neutron-l3-agent
-  neutron_metadata_agent: neutron-metadata-agent
-  nova_api: nova-api
-  nova_conductor: nova-conductor
-  nova_scheduler: nova-scheduler
-  nova_cert: nova-cert
-  nova_consoleauth: nova-consoleauth
-  nova_novncproxy: nova-novncproxy
-  nova_compute: nova-compute
-  heat_api: heat-api
-  heat_api_cfn: heat-api-cfn
-  heat_engine: heat-engine
-  ntp: ntp
-  openstack_cinder_losetup: openstack-losetup
+  ntp:
+    packages:
+      - "ntp"
+    services:
+      ntp: "ntp"
 
-conf_files:
-  mysql: "/etc/mysql/my.cnf"
-  rabbitmq: "/etc/rabbitmq/rabbitmq-env.conf"
-  keystone: "/etc/keystone/keystone.conf"
-  glance_api: "/etc/glance/glance-api.conf"
-  glance_registry: "/etc/glance/glance-registry.conf"
-  cinder: "/etc/cinder/cinder.conf"
-  apache_dashboard_enabled_conf: "/etc/apache2/conf-enabled/openstack-dashboard.conf"
-  apache_dashboard_conf: "/etc/apache2/conf-available/openstack-dashboard.conf"
-  neutron: "/etc/neutron/neutron.conf"
-  neutron_ml2: "/etc/neutron/plugins/ml2/ml2_conf.ini"
-  neutron_l2_agent: "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
-  neutron_dhcp_agent: "/etc/neutron/dhcp_agent.ini"
-  neutron_dnsmasq: "/etc/neutron/dnsmasq-neutron.conf"
-  neutron_l3_agent: "/etc/neutron/l3_agent.ini"
-  neutron_metadata_agent: "/etc/neutron/metadata_agent.ini"
-  syslinux: "/etc/sysctl.conf"
-  nova: "/etc/nova/nova.conf"
-  nova_compute: "/etc/nova/nova-compute.conf"
-  heat: "/etc/heat/heat.conf"
-  openstack_promisc_interfaces: "/etc/init/openstack-promisc-interfaces.conf"
-  br_proxy_script: "/root/set-br-proxy.sh"
-  openstack_cinder_losetup: "/etc/init/openstack-cinder-losetup.conf"
-  cloud_archive_juno: "/etc/apt/sources.list.d/cloudarchive-juno.list"
+  mysql:
+    dirs:
+      - "/var/lib/mysql"
+      - "/etc/mysql"
+    conf:
+      mysqld: "/etc/mysql/conf.d/mysqld_openstack.cnf"
+    packages:
+      - "mysql-server-5.5"
+      - "mysql-server-core-5.5"
+      - "mysql-client-core-5.5"
+      - "mysql-common"
+      - "python-mysqldb"
+    services:
+      mysql: "mysql"
 
-lib:
-  mysql: "/var/lib/mysql"
-  rabbitmq: "/var/lib/rabbitmq"
-  keystone: "/var/lib/keystone"
-  glance: "/var/lib/glance"
-  nova: "/var/lib/nova"
-  neutron: "/var/lib/neutron"
-  horizon: "/var/lib/openstack-dashboard"
-  cinder: "/var/lib/cinder"
-  heat: "/var/lib/heat"
+  rabbitmq:
+    dirs:
+      - "/var/lib/rabbitmq"
+      - "/etc/rabbitmq"
+    services:
+      rabbitmq: rabbitmq-server
+    packages:
+      - "rabbitmq-server"
 
-etc:
-  mysql: "/etc/mysql"
-  rabbitmq: "/etc/rabbitmq"
-  keystone: "/etc/keystone"
-  glance: "/etc/glance"
-  nova: "/etc/nova"
-  neutron: "/etc/neutron"
-  horizon: "/etc/apache2"
-  cinder: "/etc/cinder"
-  heat: "/etc/heat"
+  keystone:
+    dirs:
+      - "/var/lib/keystone"
+      - "/etc/keystone"
+    openstack_series:
+      juno:
+        conf:
+          keystone: "/etc/keystone/keystone.conf"
+        packages:
+          - "keystone"
+          - "python-keystoneclient"
+        services:
+          keystone: "keystone"
+        files:
+          sqlite: "/var/lib/keystone/keystone.db"
+      icehouse:
+        conf:
+          keystone: "/etc/keystone/keystone.conf"
+        packages:
+          - "keystone"
+          - "python-mysqldb"
+        services:
+          keystone: "keystone"
+        files:
+          sqlite: "/var/lib/keystone/keystone.db"
+          log_dir: "/var/log/keystone"
+
+  glance:
+    dirs:
+      - "/var/lib/glance"
+      - "/etc/glance"
+    openstack_series:
+      juno:
+        conf:
+          api: "/etc/glance/glance-api.conf"
+          registry: "/etc/glance/glance-registry.conf"
+        packages:
+          - "glance"
+          - "python-glanceclient"
+        services:
+          api: "glance-api"
+          registry: "glance-registry"
+        files:
+          images_dir: "/var/lib/glance/images"
+          sqlite: "/var/lib/glance/glance.sqlite"
+      icehouse:
+        conf:
+          api: "/etc/glance/glance-api.conf"
+          registry: "/etc/glance/glance-registry.conf"
+        packages:
+          - "glance"
+          - "python-glanceclient"
+        services:
+          api: "glance-api"
+          registry: "glance-registry"
+        files:
+          sqlite: "/var/lib/glance/glance.sqlite"
+
+  nova:
+    dirs:
+      - "/var/lib/nova"
+      - "/etc/nova"
+    openstack_series:
+      juno:
+        conf:
+          nova: "/etc/nova/nova.conf"
+          nova_compute: "/etc/nova/nova-compute.conf"
+        packages:
+          controller:
+            - "nova-api"
+            - "nova-cert"
+            - "nova-conductor"
+            - "nova-consoleauth"
+            - "nova-novncproxy"
+            - "nova-scheduler"
+            - "python-novaclient"
+          compute:
+            kvm:
+              - "sysfsutils"
+              - "nova-compute"
+              - "nova-compute-kvm"
+        services:
+          controller:
+            api: "nova-api"
+            cert: "nova-cert"
+            consoleauth: "nova-consoleauth"
+            scheduler: "nova-scheduler"
+            conductor: "nova-conductor"
+            novncproxy: "nova-novncproxy"
+          compute:
+            kvm:
+              nova: "nova-compute"
+        files:
+          sqlite: "/var/lib/nova/nova.sqlite"
+      icehouse:
+        conf:
+          nova: "/etc/nova/nova.conf"
+          nova_compute: "/etc/nova/nova-compute.conf"
+        packages:
+          controller:
+            - "nova-api"
+            - "nova-cert"
+            - "nova-conductor"
+            - "nova-consoleauth"
+            - "nova-novncproxy"
+            - "nova-scheduler"
+            - "python-novaclient"
+          compute:
+            kvm:
+              - "nova-compute-kvm"
+        services:
+          controller:
+            api: "nova-api"
+            cert: "nova-cert"
+            consoleauth: "nova-consoleauth"
+            scheduler: "nova-scheduler"
+            conductor: "nova-conductor"
+            novncproxy: "nova-novncproxy"
+          compute:
+            kvm:
+              nova: "nova-compute"
+        files:
+          sqlite: "/var/lib/nova/nova.sqlite"
+
+  neutron:
+    dirs:
+      - "/var/lib/neutron"
+      - "/etc/neutron"
+    openstack_series:
+      juno:
+        conf:
+          neutron: "/etc/neutron/neutron.conf"
+          sysctl: "/etc/sysctl.conf"
+          ml2: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+          l3_agent: "/etc/neutron/l3_agent.ini"
+          dhcp_agent: "/etc/neutron/dhcp_agent.ini"
+          dnsmasq_config_file: "/etc/neutron/dnsmasq-neutron.conf"
+          metadata_agent: "/etc/neutron/metadata_agent.ini"
+        packages:
+          controller:
+            - "neutron-server"
+            - "neutron-plugin-ml2"
+            - "python-neutronclient"
+          compute:
+            kvm:
+              - "neutron-plugin-ml2"
+              - "neutron-plugin-openvswitch-agent"
+          network:
+            - "openvswitch-switch"
+            - "neutron-plugin-openvswitch-agent"
+            - "neutron-plugin-ml2"
+            - "neutron-l3-agent"
+            - "neutron-dhcp-agent"
+            - "neutron-metadata-agent"
+            - "python-neutronclient"
+            - "conntrack"
+        services:
+          controller:
+            neutron_server: "neutron-server"
+          compute:
+            kvm:
+              ovs: "openvswitch-switch"
+              ovs_agent: "neutron-plugin-openvswitch-agent"
+          network:
+            l3_agent: "neutron-l3-agent"
+            dhcp_agent: "neutron-dhcp-agent"
+            metadata_agent: "neutron-metadata-agent"
+            ovs: "openvswitch-switch"
+            ovs_agent: "neutron-plugin-openvswitch-agent"
+      icehouse:
+        conf:
+          neutron: "/etc/neutron/neutron.conf"
+          sysctl: "/etc/sysctl.conf"
+          ml2: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+          l3_agent: "/etc/neutron/l3_agent.ini"
+          dhcp_agent: "/etc/neutron/dhcp_agent.ini"
+          dnsmasq_config_file: "/etc/neutron/dnsmasq-neutron.conf"
+          metadata_agent: "/etc/neutron/metadata_agent.ini"
+        packages:
+          controller:
+            - "neutron-server"
+            - "neutron-plugin-ml2"
+          compute:
+            kvm:
+              - "neutron-common"
+              - "neutron-plugin-ml2"
+              - "neutron-plugin-openvswitch-agent"
+              - "openvswitch-datapath-dkms"
+              - "python-mysqldb"
+          network:
+            - "neutron-plugin-ml2"
+            - "neutron-plugin-openvswitch-agent"
+            - "openvswitch-datapath-dkms"
+            - "neutron-l3-agent"
+            - "neutron-dhcp-agent"
+            - "openvswitch-switch"
+            - "neutron-metadata-agent"
+        services:
+          controller:
+            neutron_server: "neutron-server"
+          compute:
+            kvm:
+              ovs: "openvswitch-switch"
+              ovs_agent: "neutron-plugin-openvswitch-agent"
+          network:
+            l3_agent: "neutron-l3-agent"
+            dhcp_agent: "neutron-dhcp-agent"
+            metadata_agent: "neutron-metadata-agent"
+            ovs: "openvswitch-switch"
+            ovs_agent: "neutron-plugin-openvswitch-agent"
+
+  openvswitch:
+    conf:
+      promisc_interfaces: "/etc/init/openstack-promisc-interfaces.conf"
+      interfaces: "/etc/network/interfaces"
+
+  horizon:
+    dirs:
+      - "/var/lib/openstack-dashboard"
+      - "/etc/openstack-dashboard"
+    conf:
+      local_settings: "/etc/openstack-dashboard/local_settings.py"
+      apache2: "/etc/apache2/conf-available/openstack-dashboard.conf"
+      ubuntu_theme: "openstack-dashboard-ubuntu-theme"
+    packages:
+      - "openstack-dashboard"
+      - "apache2"
+      - "libapache2-mod-wsgi"
+      - "memcached"
+      - "python-memcache"
+    services:
+      apache: "apache2"
+      memcached: "memcached"
+
+  cinder:
+    dirs:
+      - "/var/lib/cinder"
+      - "/etc/cinder"
+    openstack_series:
+      juno:
+        conf:
+          cinder: "/etc/cinder/cinder.conf"
+          losetup_upstart: "/etc/init/openstack-cinder-losetup.conf"
+        packages:
+          controller:
+            - "cinder-api"
+            - "cinder-scheduler"
+            - "python-cinderclient"
+          storage:
+            - "cinder-volume"
+            - "python-mysqldb"
+        services:
+          controller:
+            scheduler: "cinder-scheduler"
+            api: "cinder-api"
+          storage:
+            tgt: "tgt"
+            cinder_volume: "cinder-volume"
+        files:
+          sqlite: "/var/lib/cinder/cinder.sqlite"
+      icehouse:
+        conf:
+          cinder: "/etc/cinder/cinder.conf"
+          losetup_upstart: "/etc/init/openstack-cinder-losetup.conf"
+        packages:
+          controller:
+            - "cinder-api"
+            - "cinder-scheduler"
+          storage:
+            - "cinder-volume"
+            - "python-mysqldb"
+        services:
+          controller:
+            scheduler: "cinder-scheduler"
+            api: "cinder-api"
+          storage:
+            tgt: "tgt"
+            cinder_volume: "cinder-volume"
+        files:
+          sqlite: "/var/lib/cinder/cinder.sqlite"
+
+  heat:
+    dirs:
+      - "/var/lib/heat"
+      - "/etc/heat"
+    openstack_series:
+      juno:
+        conf:
+          heat: "/etc/heat/heat.conf"
+        packages:
+          - "heat-api"
+          - "heat-api-cfn"
+          - "heat-engine"
+          - "python-heatclient"
+        services:
+          api: "heat-api"
+          api_cfn: "heat-api-cfn"
+          engine: "heat-engine"
+        files:
+          sqlite: "/var/lib/heat/heat.sqlite"
+      icehouse:
+        conf:
+          heat: "/etc/heat/heat.conf"
+        packages:
+          - "heat-api"
+          - "heat-api-cfn"
+          - "heat-engine"
+        services:
+          api: "heat-api"
+          api_cfn: "heat-api-cfn"
+          engine: "heat-engine"
+        files:
+          sqlite: "/var/lib/heat/heat.sqlite"
+          log_dir: "/var/log/heat"

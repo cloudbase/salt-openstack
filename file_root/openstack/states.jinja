@@ -1,0 +1,89 @@
+{% set reset_type = '%s' % salt['pillar.get']('reset') %}
+
+
+{% set controller_states = [] %}
+{% set network_states = [] %}
+{% set compute_states = [] %}
+{% set storage_states = [] %}
+
+{% if reset_type.lower() == 'soft' %}
+  {% set controller_states = [ "reset.soft" ] %}
+{% elif reset_type.lower() == 'hard' %}
+  {% set controller_states = [ "reset.hard" ] %}
+  {% set network_states = [ "reset.hard" ] %}
+  {% set compute_states = [ "reset.hard" ] %}
+  {% set storage_states = [ "reset.hard" ] %}
+{% endif %}
+
+{% set controller_states = controller_states + [
+        "ntp",
+        "system",
+        "database",
+        "message_queue",
+        "openstack.keystone",
+        "openstack.glance",
+        "openstack.nova.controller",
+        "openstack.neutron.controller",
+        "openstack.cinder.controller",
+        "openstack.heat",
+        "openstack.horizon"
+    ]
+%}
+
+{% set network_states = network_states + [
+        "openstack.neutron.network"
+    ]
+%}
+
+{% set compute_states = compute_states + [
+        "openstack.neutron.compute",
+        "openstack.nova.compute"
+    ]
+%}
+
+{% set storage_states = storage_states + [
+        "openstack.cinder.storage"
+    ]
+%}
+
+
+{% set minion_states = [] %}
+{% set minion_id = grains['id'] %}
+
+{% if minion_id == pillar['controller'] %}
+  {% for state in controller_states %}
+    {% if state not in minion_states %}
+      {% do minion_states.append(state) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if minion_id == pillar['network'] %}
+  {% for state in network_states %}
+    {% if state not in minion_states %}
+      {% do minion_states.append(state) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if minion_id in pillar['compute'] %}
+  {% for state in compute_states %}
+    {% if state not in minion_states %}
+      {% do minion_states.append(state) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if minion_id == pillar['controller'] %}
+  {% do minion_states.append("openstack.neutron.networks") %}
+  {% do minion_states.append("openstack.neutron.routers") %}
+  {% do minion_states.append("openstack.neutron.security_groups") %}
+{% endif %}
+
+{% if minion_id in pillar['storage'] %}
+  {% for state in storage_states %}
+    {% if state not in minion_states %}
+      {% do minion_states.append(state) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}

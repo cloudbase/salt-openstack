@@ -1,7 +1,7 @@
-{% from "cluster/resources.jinja" import formulas with context %}
+{% from "openstack/states.jinja" import minion_states with context %}
 
 openstack:
   "*":
-{% for formula in formulas %}
-    - {{ formula }}
+{% for state in minion_states %}
+    - {{ state }}
 {% endfor %}
