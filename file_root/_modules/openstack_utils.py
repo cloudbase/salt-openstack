@@ -362,8 +362,10 @@ def os_services(minion_role=None):
         return []
     services = _openstack_resources('services', minion_role)
     unique_services = _remove_list_duplicates(services)
-    if openstack_series_persist() == 'kilo' and 'keystone' in unique_services:
-        unique_services.remove('keystone')
+    keystone_service_name = keystone()['services']['keystone']
+    if openstack_series_persist() == 'kilo' and \
+       keystone_service_name in unique_services:
+        unique_services.remove(keystone_service_name)
     return unique_services
 
 
