@@ -12,18 +12,24 @@ openvswitch_promisc_interfaces_script:
         #!/usr/bin/env bash
         ip link set br-proxy up promisc on
         ip link set {{ neutron['single_nic']['interface'] }} up promisc on
+{% set index = 1 %}
 {% for bridge in neutron['bridges'] %}
+        ip link set {{ bridge }} up
   {% if bridge not in [ neutron['tunneling']['bridge'], neutron['integration_bridge'] ] %}
-        ip link add proxy-veth-{{ bridge }} type veth peer name veth-{{ bridge }}-br-proxy
-        ip link set veth-{{ bridge }}-br-proxy up promisc on
-        ip link set proxy-veth-{{ bridge }} up promisc on
+        ip link add veth-proxy-{{ index }} type veth peer name veth-{{ index }}-proxy
+        ip link set veth-{{ index }}-proxy up promisc on
+        ip link set veth-proxy-{{ index }} up promisc on
   {% endif %}
+  {% set index = index + 1 %}
 {% endfor %}
     - require:
+{% set index = 1 %}
 {% for bridge in neutron['bridges'] %}
-  {% if neutron['bridges'][bridge] %}
-      - cmd: openvswitch_interface_{{ bridge }}_{{ neutron['bridges'][bridge] }}_up
+  {% if bridge not in [ neutron['tunneling']['bridge'], neutron['integration_bridge'] ] %}
+      - cmd: openvswitch_veth-proxy-{{ index }}_up
+      - cmd: openvswitch_veth-{{ index }}-proxy_up
   {% endif %}
+  {% set index = index + 1 %}
 {% endfor %}
 
 
@@ -45,16 +51,24 @@ openvswitch_promisc_interfaces_systemd_service:
 
 openvswitch_promisc_interfaces_enable:
   service.enabled:
-    - name: "{{ salt['openstack_utils.systemd_service_name'])openvswitch['conf']['promisc_interfaces_systemd']) }}"
+    - name: "{{ salt['openstack_utils.systemd_service_name'](openvswitch['conf']['promisc_interfaces_systemd']) }}"
     - require:
-      - file: openvswitch_promisc_interfaces_systemd_service
+      - ini: openvswitch_promisc_interfaces_systemd_service
 
 
+{% set ip_configs = salt['openstack_utils.network_script_ip_configs'](neutron['single_nic']['interface']) %}
 openvswitch_br-proxy_network_script:
-  file.copy:
+  ini.options_present:
     - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-br-proxy"
-    - source: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-{{ neutron['single_nic']['interface'] }}"
     - unless: "ls {{ openvswitch['conf']['network_scripts'] }}/ifcfg-br-proxy"
+    - sections:
+        DEFAULT_IMPLICIT:
+          DEVICE: br-proxy
+          DEVICETYPE: ovs
+          TYPE: OVSBridge
+{% for config in ip_configs %}
+          {{ config }}: "{{ ip_configs[config] }}"
+{% endfor %}
 
 
 openvswitch_{{ neutron['single_nic']['interface'] }}_ovs_port_network_script:
@@ -73,55 +87,20 @@ openvswitch_{{ neutron['single_nic']['interface'] }}_ovs_port_network_script:
         ONBOOT=yes
         NOZEROCONF=yes
     - require:
-      - file: openvswitch_br-proxy_network_script
+      - ini: openvswitch_br-proxy_network_script
 
 
+{% set index = 1 %}
 {% for bridge in neutron['bridges'] %}
-openvswitch_{{ bridge }}_ovs_bridge_network_script:
-  file.managed:
-    - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-{{ bridge }}"
-    - user: root
-    - group: root
-    - mode: 644
-    - contents: |
-        DEVICE={{ bridge }}
-        DEVICETYPE=ovs
-        TYPE=OVSBridge
-        BOOTPROTO=none
-        ONBOOT=yes
-        NOZEROCONF=yes
-
-
-  {% if neutron['bridges'][bridge] %}
-openvswitch_{{ neutron['bridges'][bridge] }}_ovs_port_network_script:
-  file.managed:
-    - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-{{ neutron['bridges'][bridge] }}"
-    - user: root
-    - group: root
-    - mode: 644
-    - contents: |
-        DEVICE={{ neutron['bridges'][bridge] }}
-        ONBOOT=yes
-        TYPE=OVSPort
-        DEVICETYPE=ovs
-        OVS_BRIDGE={{ bridge }}
-        ONBOOT=yes
-        NOZEROCONF=yes
-        BOOTPROTO=none
-    - require:
-      - file: openvswitch_{{ bridge }}_ovs_bridge_network_script
-  {% endif %}
-
-
   {% if bridge not in [ neutron['tunneling']['bridge'], neutron['integration_bridge'] ] %}
-openvswitch_proxy-veth-{{ bridge }}_ovs_port_network_script:
+openvswitch_veth-proxy-{{ index }}_ovs_port_network_script:
   file.managed:
-    - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-proxy-veth-{{ bridge }}"
+    - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-veth-proxy-{{ index }}"
     - user: root
     - group: root
     - mode: 644
     - contents: |
-        DEVICE=proxy-veth-{{ bridge }}
+        DEVICE=veth-proxy-{{ index }}
         ONBOOT=yes
         TYPE=OVSPort
         DEVICETYPE=ovs
@@ -129,6 +108,7 @@ openvswitch_proxy-veth-{{ bridge }}_ovs_port_network_script:
         ONBOOT=yes
         NOZEROCONF=yes
     - require:
-      - file: openvswitch_br-proxy_network_script
+      - ini: openvswitch_br-proxy_network_script
   {% endif %}
+  {% set index = index + 1 %}
 {% endfor %}

@@ -3,21 +3,6 @@
 
 
 {% for bridge in neutron['bridges'] %}
-openvswitch_{{ bridge }}_ovs_bridge_network_script:
-  file.managed:
-    - name: "{{ openvswitch['conf']['network_scripts'] }}/ifcfg-{{ bridge }}"
-    - user: root
-    - group: root
-    - mode: 644
-    - contents: |
-        DEVICE={{ bridge }}
-        DEVICETYPE=ovs
-        TYPE=OVSBridge
-        BOOTPROTO=none
-        ONBOOT=yes
-        NOZEROCONF=yes
-
-
   {% if neutron['bridges'][bridge] %}
 openvswitch_{{ neutron['bridges'][bridge] }}_ovs_port_network_script:
   file.managed:
@@ -34,8 +19,6 @@ openvswitch_{{ neutron['bridges'][bridge] }}_ovs_port_network_script:
         ONBOOT=yes
         NOZEROCONF=yes
         BOOTPROTO=none
-    - require:
-      - file: openvswitch_{{ bridge }}_ovs_bridge_network_script
   {% endif %}
 {% endfor %}
 
@@ -49,6 +32,7 @@ openvswitch_promisc_interfaces_script:
     - contents: |
         #!/usr/bin/env bash
 {% for bridge in neutron['bridges'] %}
+        ip link set {{ bridge }} up
   {% if neutron['bridges'][bridge] %}
         ip link set {{ neutron['bridges'][bridge] }} up promisc on
   {% endif %}

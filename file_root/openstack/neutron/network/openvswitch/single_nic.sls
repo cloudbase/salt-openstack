@@ -21,6 +21,7 @@ openvswitch_{{ neutron['single_nic']['interface'] }}_up:
       - cmd: openvswitch_bridge_br-proxy_up
 
 
+{% set index = 1 %}
 {% for bridge in neutron['bridges'] %}
 openvswitch_bridge_{{ bridge }}_create:
   cmd.run:
@@ -40,39 +41,40 @@ openvswitch_bridge_{{ bridge }}_up:
   {% if bridge not in [ neutron['tunneling']['bridge'], neutron['integration_bridge'] ] %}
 openvswitch_veth_{{ bridge }}_create:
   cmd.run:
-    - name: "ip link add proxy-veth-{{ bridge }} type veth peer name veth-{{ bridge }}-br-proxy"
-    - unless: "ip link list | egrep proxy-veth-{{ bridge }}"
+    - name: "ip link add veth-proxy-{{ index }} type veth peer name veth-{{ index }}-proxy"
+    - unless: "ip link list | egrep veth-proxy-{{ index }}"
     - require:
       - cmd: openvswitch_bridge_{{ bridge }}_up
 
 
-openvswitch_veth-{{ bridge }}-br-proxy_add:
+openvswitch_veth-{{ index }}-proxy_add:
   cmd.run:
-    - name: "ovs-vsctl add-port {{ bridge }} veth-{{ bridge }}-br-proxy"
-    - unless: "ovs-vsctl list-ports {{ bridge }} | grep veth-{{ bridge }}-br-proxy"
+    - name: "ovs-vsctl add-port {{ bridge }} veth-{{ index }}-proxy"
+    - unless: "ovs-vsctl list-ports {{ bridge }} | grep veth-{{ index }}-proxy"
     - require:
       - cmd: openvswitch_veth_{{ bridge }}_create
 
 
-openvswitch_veth-{{ bridge }}-br-proxy_up:
+openvswitch_veth-{{ index }}-proxy_up:
   cmd.run:
-    - name: "ip link set veth-{{ bridge }}-br-proxy up promisc on"
+    - name: "ip link set veth-{{ index }}-proxy up promisc on"
     - require:
-      - cmd: openvswitch_veth-{{ bridge }}-br-proxy_add
+      - cmd: openvswitch_veth-{{ index }}-proxy_add
 
 
-openvswitch_proxy-veth-{{ bridge }}_add:
+openvswitch_veth-proxy-{{ index }}_add:
   cmd.run:
-    - name: "ovs-vsctl add-port br-proxy proxy-veth-{{ bridge }}"
-    - unless: "ovs-vsctl list-ports br-proxy | grep proxy-veth-{{ bridge }}"
+    - name: "ovs-vsctl add-port br-proxy veth-proxy-{{ index }}"
+    - unless: "ovs-vsctl list-ports br-proxy | grep veth-proxy-{{ index }}"
     - require:
       - cmd: openvswitch_veth_{{ bridge }}_create
 
 
-openvswitch_proxy-veth-{{ bridge }}_up:
+openvswitch_veth-proxy-{{ index }}_up:
   cmd.run:
-    - name: "ip link set proxy-veth-{{ bridge }} up promisc on"
+    - name: "ip link set veth-proxy-{{ index }} up promisc on"
     - require:
-      - cmd: openvswitch_proxy-veth-{{ bridge }}_add
+      - cmd: openvswitch_veth-proxy-{{ index }}_add
   {% endif %}
+  {% set index = index + 1 %}
 {% endfor %}

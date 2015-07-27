@@ -117,6 +117,15 @@ def _rpm_repo_name(rpm_repo_url=None):
     return rpm_repo_url.split('/')[-1].split('.')[0]
 
 
+def _unquote_str(str_var):
+    if (not str_var) or (type(str_var) is not str):
+        return str_var
+    if str_var.startswith('"') and str_var.endswith('"') or \
+       str_var.startswith("'") and str_var.endswith("'"):
+        return str_var[1:-1]
+    return str_var
+
+
 def icehouse_keystone_services():
     return _keystone_services()
 
@@ -425,6 +434,30 @@ def systemd_service_name(systemd_service_script=None):
     base_name = systemd_service_script.split('/')[-1]
     # remove ".service" suffix
     return base_name[:-8]
+
+
+def network_script_ip_configs(interface_name=None):
+    if not interface_name:
+        return []
+    network_scripts = '/etc/sysconfig/network-scripts'
+    bootproto = _unquote_str(__salt__['ini.get_option'](
+                '%s/ifcfg-%s' % (network_scripts, interface_name),
+                'DEFAULT_IMPLICIT', 'BOOTPROTO'))
+    context = { 'BOOTPROTO': bootproto }
+
+    if compare_ignore_case(bootproto, "dhcp"):
+        return context
+
+    if compare_ignore_case(bootproto, "static") or \
+        compare_ignore_case(bootproto, "none"):
+        configs = ['IPADDR', 'NETMASK', 'PREFIX', 'GATEWAY', 'DNS1', 'DNS2']
+        for config in configs:
+            config_value = _unquote_str(__salt__['ini.get_option'](
+                            '%s/ifcfg-%s' % (network_scripts, interface_name),
+                            'DEFAULT_IMPLICIT', config))
+            if config_value:
+                context.update({ config: config_value })
+    return context
 
 
 def ntp():
