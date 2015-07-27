@@ -10,8 +10,6 @@ neutron_compute_sysctl_conf:
         DEFAULT_IMPLICIT: 
           net.ipv4.conf.all.rp_filter: 0
           net.ipv4.conf.default.rp_filter: 0
-          net.bridge.bridge-nf-call-iptables: 1
-          net.bridge.bridge-nf-call-ip6tables: 1
 
 
 neutron_compute_sysctl_enable:

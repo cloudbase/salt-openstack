@@ -1,41 +1,41 @@
 mysql:
-  root_password: "<password_value>"
+  root_password: "RandomPassword123"
 
 rabbitmq:
   user_name: "openstack"
-  user_password: "<password_value>"
+  user_password: "RandomPassword123"
 
 databases:
   nova:
     db_name: "nova"
     username: "nova"
-    password: "<password_value>"
+    password: "RandomPassword123"
   keystone:
     db_name: "keystone"
     username: "keystone"
-    password: "<password_value>"
+    password: "RandomPassword123"
   cinder:
     db_name: "cinder"
     username: "cinder"
-    password: "<password_value>"
+    password: "RandomPassword123"
   glance:
     db_name: "glance"
     username: "glance"
-    password: "<password_value>"
+    password: "RandomPassword123"
   neutron:
     db_name: "neutron"
     username: "neutron"
-    password: "<password_value>"
+    password: "RandomPassword123"
   heat:
     db_name: "heat"
     username: "heat"
-    password: "<password_value>"
+    password: "RandomPassword123"
 
 neutron:
-  metadata_secret: "<secret_token>"
+  metadata_secret: "RandomPassword123"
 
 keystone:
-  admin_token: "<secret_token>"
+  admin_token: "RandomPassword123"
   roles:
     - "admin"
     - "heat_stack_owner"
@@ -44,43 +44,43 @@ keystone:
     admin:
       users:
         admin:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
             - "heat_stack_owner"
           email: "salt@openstack.com"
           keystonerc:
-            create: <True/False>
-            path: <keystonerc_path>
+            create: True
+            path: /root/keystonerc_admin
     service:
       users:
         cinder:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"
         glance:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"
         neutron:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"
         nova:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"
         heat:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"
         heat-cfn:
-          password: "<password_value>"
+          password: "RandomPassword123"
           roles:
             - "admin"
           email: "salt@openstack.com"

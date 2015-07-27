@@ -87,7 +87,7 @@ keystone_apache2_servername:
     - text:
       - "ServerName {{ openstack_parameters['controller_ip'] }}"
     - unless: >
-        cat {{ keystone['conf']['httpd'] }} | egrep -v "^\s*#" | grep ServerName
+        cat {{ keystone['conf']['apache2'] }} | egrep -v "^\s*#" | grep ServerName
     - require:
       - file: keystone_virtual_host_conf
 

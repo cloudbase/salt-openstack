@@ -295,3 +295,6 @@ SECURITY_GROUP_RULES = {
     },
 }
 REST_API_REQUIRED_SETTINGS = ['OPENSTACK_HYPERVISOR_FEATURES']
+{% if grains['os'] == 'Ubuntu' %}
+WEBROOT = '/horizon'
+{% endif %}
