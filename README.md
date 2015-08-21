@@ -83,6 +83,7 @@ Execute ``sudo salt-key -L`` on master machine and the following output is given
 
     Accepted Keys:
     <minion_id>
+    Denied Keys:
     Unaccepted Keys:
     Rejected Keys:
 
@@ -110,29 +111,37 @@ On the master machine, change directory to ``pillar_root``. Duplicate the folder
 
 The following files from ``<openstack_environment_name>`` folder have to be edited before deploying OpenStack: 
 
-- ``access_resources.sls`` (passwords and keystone related data)
-- ``cluster_resources.sls`` (OpenStack environment information)
-- ``network_resources.sls`` (OpenStack networking configuration).
+- ``credentials.sls`` (passwords and keystone related data)
+- ``environment.sls`` (OpenStack environment information)
+- ``networking.sls`` (OpenStack networking configuration)
 
 As official OpenStack documentation recommends, strong passwords and tokens can be generated using: ``openssl rand -hex 10``
 
 For each file inside ``<openstack_environment_name>`` folder from ``pillar_root``, edit the following configurations and leave the other options to the default value.
 
-### 2.1 Edit access_resources.sls file
+### 2.1 Edit credentials.sls file
 
 - Password used by the MySQL root user
 
         mysql:root_password
 
-- RabbitMQ password used by the user guest
+- RabbitMQ user used by the OpenStack services
 
-        rabbitmq:guest_password
+        rabbitmq:user_name
+
+- Password used by the RabbitMQ user
+
+        rabbitmq:user_password
 
 - MySQL database password for each OpenStack service
 
         databases:<service_name>:password
 
- Databases section inside ``access_resources.sls`` contains information about the database of each service within OpenStack. Six services are available to be installed with the current SaltStack scripts: nova, keystone, cinder, glance, neutron and heat. Edit the password for each one of them.
+ Databases section inside ``credentials.sls`` contains information about the database of each service within OpenStack. Six services are available to be installed with the current SaltStack scripts: **nova**, **keystone**, **cinder**, **glance**, **neutron** and **heat**. Edit the password for each one of them.
+
+- Metadata token used by neutron
+
+        neutron:metadata_secret
 
 - Admin token used by keystone service
 
@@ -142,52 +151,70 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         keystone:tenants:<tenant_name>:users:<user_name>:password
 
- The **tenants** section under **keystone** contains information about the tenants and users to be created. By default only admin and service tenants are created. You can define more tenants and users to be created here. Use the following structure:
+ The **tenants** section under **keystone** contains information about the tenants and users to be created. The template contains only admin and service tenants. You can define more tenants and users to be created here. Use the following structure:
 
         <tenant_name>: 
           users: 
             <user1_name>: 
               password: "<user1_password"
-              roles: "[\"<user1_role>\"]"
+              roles:
+                - "<user1_role>"
               email: "<user1_email>"
+              keystonerc:
+                create: <True/False>
+                path: <keystonerc_path>
             <user2_name>: 
               password: "<user2_password"
-              roles: "[\"<user2_role>\"]"
+              roles:
+                - "<user2_role>"
               email: "<user2_email>"
+              keystonerc:
+                create: <True/False>
+                path: <keystonerc_path>
 
 
-### 2.2 Edit cluster_resources.sls file
+### 2.2 Edit environment.sls file
 
 - OpenStack environment name
 
-        cluster_name
+        environment_name
 
- The cluster name should be the name of the folder with the pillar data.
+ The environment is recommended to be named as the folder with the pillar data.
 
-- OpenStack release name
+- OpenStack series
 
-        cluster_type
+        openstack_series
 
- The OpenStack release which will be installed. At the moment only: ``juno`` and ``icehouse``.
+ The OpenStack series which will be installed. At the moment only: ``juno``, ``icehouse`` and ``kilo``.
 
 - Reset type to be applied on the targeted minion(s)
 
         reset
 
- Reset feature is used to remove or reconfigure a previously deployed OpenStack environment. This key accepts one of the following values: ``hard`` or ``soft``, depending on the required reset type.
+ Reset feature is used to remove or reconfigure a previously deployed OpenStack environment. This parameter accepts one of the following values: ``hard`` or ``soft``, depending on the required reset type.
 
  Reset types details:
 
-  - ``Hard`` reset: It should be used when a previously deployed OpenStack is broken / nonfunctional. 
+  - ``hard`` reset: It should be used when a previously deployed OpenStack is broken / nonfunctional. 
 
     **WARNING**: Hard reset states will purge all OpenStack packages and their dependencies (MySQL, RabbitMQ, OpenvSwitch, Apache and Memcached). This **MUST** not be used if there are, on the minion, other services using these dependencies.
 
-  - ``Soft`` reset: It should be used when a previously deployed OpenStack is functional (all OpenStack services are up and running) and only reconfiguration is needed (based on the new pillar parameters).
+  - ``soft`` reset: It should be used when a previously deployed OpenStack is functional (all OpenStack services are up and running) and only reconfiguration is needed (based on the new pillar parameters).
+
+    **WARNING**:
 
     - Soft reset states will **NOT** run, if all OpenStack services are not running.
     - Soft reset states will execute commands on the controller node that will delete (from every tenant) the following elements: heat stacks, cinder volumes, nova instances, neutron networks / subnets / routers, glance images, etc.
 
   **NOTE**: Reset feature will not reconfigure single NIC Openstack environment to multi-NIC OpenStack environment.
+
+- Boolean value to indicate whether all OpenStack services are set into `debug` and `verbose` mode:
+
+        debug_mode
+
+- Boolean value which indicates whether system upgrade will be performed or not:
+
+        system_upgrade
 
 - OpenStack nodes
 
@@ -200,7 +227,7 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         <role_name>:<minion_ids>
 
- Add every minion id under the role you want that minion to have. There are four roles defined with the following names: controller, network, storage and compute. 
+ Add every minion id under the role you want that minion to have. There are four roles defined with the following names: **controller**, **network**, **storage** and **compute**.
 
  When you define the nodes for each role use the following structure: 
 
@@ -213,29 +240,9 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
           - "<minion_id_1>"
           - "<minion_id_2>"
 
-
  There is:
   - One to one mapping between the roles controller, network and minions;
-  - One to many mapping between the roles compute, storage and minions
-
-- Custom images that you want to upload to glance here.
-
-        glance:images
-
- Add custom images that you want to upload to glance here. Use the following structure:
-
-        <image_name>:
-          min_disk: "<minimum_needed_disk_in_gigabytes>"
-          min_ram: "<minimum_needed_ram_in_megabytes>"
-          copy_from: "<image_url>"
-          user: "<user_name>"
-          tenant: "<tenant_name>"
-          disk_format: "<raw,vhd,vmdk,vdi,iso,qcow2,aki,ari,ami>"
-          container_format: "<bare,ovf,aki,ari,ami,ova>"
-          is_public: "<True/False>"
-          protected: "<True/False>"
-
- After glance is installed, the image is downloaded from the given ``<image_url>`` and uploaded to glance into the tenant ``<tenant_name>`` using the user with username ``<user_name>``. 
+  - One to many mapping between the roles compute, storage and minions.
 
 - Value of the total cinder volumes group size given in gigabytes.
 
@@ -249,34 +256,47 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
         nova:ram_allocation_ratio
 
-- Absolute path where keystonerc for user admin will be saved on the salt-minion(s)
 
-        files:keystone_admin:path
+- Custom glance images.
+
+        glance:images
+
+ Add custom images that you want to upload to glance here. Use the following structure:
+
+        <image_name>:
+          user: "<user_name>"
+          tenant: "<tenant_name>"
+          parameters:
+            min_disk: "<minimum_needed_disk_in_gigabytes>"
+            min_ram: "<minimum_needed_ram_in_megabytes>"
+            copy_from: "<image_url>"
+            disk_format: "<raw,vhd,vmdk,vdi,iso,qcow2,aki,ari,ami>"
+            container_format: "<bare,ovf,aki,ari,ami,ova>"
+            is_public: "<True/False>"
+            protected: "<True/False>"
+
+ After glance is installed, the image is downloaded from the given ``<image_url>`` and uploaded to glance into the tenant ``<tenant_name>`` using the user with username ``<user_name>``. 
 
 
-### 2.3 Edit network_resources.sls file
+### 2.3 Edit networking.sls file
 
-- Secret token used by neutron
+- Name of bridge used for external network traffic.
 
-        neutron:metadata_secret
+        neutron:external_bridge
 
-- Boolean value to enable / disable single NIC OpenStack deployment
+- Boolean value to enable / disable single NIC OpenStack deployment. This must be used only for all-in-one OpenStack deployments.
 
         single_nic:enable
  
  In case this value is set to ``True``, ``br-proxy`` needs to be set up as it is needed for single NIC OpenStack. Configuration is made and after the OpenStack deployment is done, networking service just needs to be restarted to have this set up.
  
- **NOTE**: Due to a bug on Ubuntu 14.04 that networking service cannot be stopped / restarted, a bash script is created to set ``br-proxy`` up. At the end of salt-scripts execution, it can be found on the salt-minion at the default location ``/root/set-br-proxy.sh``
+ **NOTE**: Due to a bug on Ubuntu 14.04 that networking service cannot be stopped / restarted, a bash script is created to set ``br-proxy`` up. At the end of salt-scripts execution, it can be found on the salt-minion at the default location ``/root/set-br-proxy.sh``.
 
-- Name of the network interface used in the single NIC OpenStack deployment
+- Name of the network interface used in the single NIC OpenStack deployment.
 
         single_nic:interface
 
-- Name of bridge used for external network traffic
-
-        neutron:external_bridge
-
-- Openvswitch physnets mappings
+- Openvswitch physnets mappings.
 
         neutron:type_drivers:<network_type>:physnets
 
@@ -303,9 +323,9 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
 
 - The following settings will be applied only if ``neutron:tunneling:enable`` is set to ``True``
 
-  - Neutron tunnel type. It takes one of the values: ``gre`` or ``vxlan``
+  - Neutron tunnel types. Array with the tunnel types that must be enabled for neutron. Valid elements are: ``gre`` or ``vxlan``.
 
-          neutron:tunneling:tunnel_type
+          neutron:tunneling:types
 
   - ``VXLAN`` and ``GRE`` tunnels definitions
 
@@ -382,6 +402,7 @@ For each file inside ``<openstack_environment_name>`` folder from ``pillar_root`
               port_range_max: "<end_port>"
               remote_ip_prefix: "<cidr>"
 
+**NOTE**: OpenStack pillar configuration samples can be found inside `samples` from `pillar_root`. Examples on how to configure OpenStack using: `single_nic`, `vxlan` networking, `vlan` networking or `gre` networking are given.
 
 ## 3. Install OpenStack
 
@@ -393,13 +414,13 @@ Top file determines which are the minions that will have OpenStack parameters av
       "<minion_id_1>,<minion_id_2>":
         - match: list
         - {{ grains['os'] }}
-        - <openstack_environment_name>.cluster_resources
-        - <openstack_environment_name>.access_resources
-        - <openstack_environment_name>.network_resources
+        - <openstack_environment_name>.credentials
+        - <openstack_environment_name>.environment
+        - <openstack_environment_name>.networking
 
 At line two from ``top.sls`` file, you specify the targeted minions. Give them as a comma separated list.
 
-**IMPORTANT**:  Here, you must specify only the minions ids defined in the ``cluster_resources.sls`` file at **hosts** section. 
+**IMPORTANT**:  Here, you must specify only the minions ids defined in the ``environment.sls`` file at **hosts** section. 
 
 Also replace ``<openstack_environment_name>`` with the name of the folder from ``pillar_root`` that contains the OpenStack parameters.
 
@@ -407,19 +428,19 @@ OpenStack environment is ready to be installed.
 
 On the salt master machine execute the following commands:
 
-    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.refresh_pillar                         
+    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.refresh_pillar
     # It will make the OpenStack parameters available on the targeted minion(s).
 
-    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.sync_all                               
+    sudo salt -L '<minion_id_1>,<minion_id_2>' saltutil.sync_all
     # It will upload all of the custom dynamic modules to the targeted minion(s). 
     # Custom modules for OpenStack (network create, router create, security group create, etc.) have been defined.
 
-    sudo salt -C 'I@cluster_name:<cluster_name>' state.highstate  
+Replace ``<environment_name>`` with the name of the OpenStack environment as defined in ``environment.sls`` file and run the following command:
+
+    sudo salt -C 'I@environment_name:<environment_name>' state.highstate
     # It will install the OpenStack environment
 
-Replace ``<cluster_name>`` with the name of the OpenStack environment as defined in ``cluster_resources.sls`` file.
-
-At the end of the execution, the following output is given:
+At the end of the command execution, the following output is given:
 
     Summary
     --------------
@@ -432,10 +453,9 @@ A total number of ``<total_states>`` have been executed and ``<states_caused_cha
 
 ``<failed_states>`` should be zero. In case it is higher than zero, check the logs on the minion(s) for errors details.
 
-OpenStack is installed using SaltStack. Depending on your Linux distribution, horizon can be accessed at the URL:
+OpenStack is installed using SaltStack. Horizon dashboard can be accessed at the URL:
 
- - ``http://<minion_ip_address>/horizon`` for Ubuntu
- - ``http://<minion_ip_address>/dashboard`` for CentOS
+ - ``http://<controller_ip_address>/dashboard``
 
 # How-To Section
 

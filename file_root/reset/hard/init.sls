@@ -1,126 +1,30 @@
+{% set hard_reset_states = salt['openstack_utils.hard_reset_states']() %}
 
 
-# Delete remaining directories after packages purge
+{% if salt['openstack_utils.openstack_series_persist']() %}
+  {% if hard_reset_states != [] %}
+include:
+    {% for state in hard_reset_states %}
+  - {{ state }}
+    {% endfor %}
+  - reset.hard.{{ grains['os'] }}
+  {% endif %}
 
-{% set DIRS = [ 'lib', 'etc' ] %}
-{% set PKGS = ['mysql',   'rabbitmq', 'keystone', 'glance', 'nova', 'neutron', 
-               'horizon', 'cinder',   'heat'] %}
 
-{% for dir in DIRS %}
-  {% for pkg in PKGS %}
-    {% if salt['pillar.get']('%s:%s' % (dir, pkg)) != "" %}
-{{ pkg }}_{{ dir }}_delete:
+  {% set minion_roles = salt['openstack_utils.minion_roles']() %}
+  {% for role in minion_roles %}
+    {% set dirs = salt['openstack_utils.minion_packages_dirs'](role) %}
+    {% set packages = salt['openstack_utils.os_packages'](role) %}
+    {% if packages %}
+      {% for dir in dirs %}
+hard_reset_{{ role }}_{{ dir }}_absent:
   file.absent:
-    - name: {{ salt['pillar.get']('%s:%s' % (dir, pkg)) }}
+    - name: {{ dir }}
     - require:
-      # Dependencies are dynamically generated
-
-      # CONTROLLER NODE
-      {% if grains['id'] == salt['pillar.get']('controller') %}
-        {% if pkg == 'mysql' %}
-          {% if 'mysql.client' in salt['pillar.get']('sls:network') %}
-      - pkg: controller_{{ pkg }}_client_purge
-          {% endif %}
-      - pkg: controller_{{ pkg }}_purge
-        {% elif pkg == 'rabbitmq' %}
-          {% if 'queue.rabbit' in salt['pillar.get']('sls:controller') %}
-      - pkg: controller_{{ pkg }}_purge
-          {% endif %}
-        {% elif pkg == 'neutron' %}
-          {% if 'neutron.ml2' in salt['pillar.get']('sls:controller') %}
-      - pkg: controller_{{ pkg }}_ml2_purge
-          {% endif %}
-      - pkg: controller_{{ pkg }}_purge
-        {% elif pkg in salt['pillar.get']('sls:controller') %}
-      - pkg: controller_{{ pkg }}_purge
-        {% endif %}
-      {% endif %}
-
-      # NETWORK NODE
-      {% if grains['id'] == salt['pillar.get']('network') %}
-        {% if pkg == 'mysql' %}
-          {% if 'mysql.client' in salt['pillar.get']('sls:network') %}
-      - pkg: network_{{ pkg }}_client_purge
-          {% endif %}
-        {% elif pkg == 'neutron' %}
-          {% if 'neutron.services' in salt['pillar.get']('sls:network') %}
-      - pkg: network_{{ pkg }}_services_purge
-          {% endif %}
-          {% if 'neutron.ml2' in salt['pillar.get']('sls:network') %}
-      - pkg: network_{{ pkg }}_ml2_purge
-          {% endif %}
-          {% if 'neutron.openvswitch' in salt['pillar.get']('sls:network') %}
-      - pkg: network_{{ pkg }}_openvswitch_purge
-            {% if grains['os'] == 'CentOS' %}
-      - file: network_neutron_openvswitch_promisc_script_delete
-      - file: network_neutron_openvswitch_promisc_systemd_delete
-            {% endif %}
-          {% endif %}
-        {% elif pkg in salt['pillar.get']('sls:network') %}
-      - pkg: network_{{ pkg }}_purge
-        {% endif %}
-      {% endif %}
-
-      # COMPUTE NODE
-      {% if grains['id'] in salt['pillar.get']('compute') %}
-        {% if pkg == 'mysql' %}
-          {% if 'mysql.client' in salt['pillar.get']('sls:compute') %}
-      - pkg: compute_{{ pkg }}_client_purge
-          {% endif %}
-        {% elif pkg == 'nova' %}
-          {% if 'nova.compute_kvm' in salt['pillar.get']('sls:compute') %}
-      - pkg: compute_kvm_purge
-          {% endif %}
-        {% elif pkg == 'neutron' %}
-          {% if 'neutron.openvswitch' in salt['pillar.get']('sls:compute') %}
-      - pkg: compute_{{ pkg }}_openvswitch_purge
-            {% if grains['os'] == 'CentOS' %}
-      - file: compute_neutron_openvswitch_promisc_script_delete
-      - file: compute_neutron_openvswitch_promisc_systemd_delete
-            {% endif %}
-          {% endif %}
-          {% if 'neutron.ml2' in salt['pillar.get']('sls:compute') %}
-      - pkg: compute_{{ pkg }}_ml2_purge
-          {% endif %}
-        {% elif pkg in salt['pillar.get']('sls:compute') %}
-      - pkg: compute_{{ pkg }}_purge
-        {% endif %}
-      {% endif %}
-
-      # STORAGE NODE
-      {% if grains['id'] in salt['pillar.get']('storage') %}
-        {% if pkg == 'mysql' %}
-          {% if 'mysql.client' in salt['pillar.get']('sls:storage') %}
-      - pkg: storage_{{ pkg }}_client_purge
-          {% endif %}
-        {% elif pkg == 'cinder' %}
-          {% if 'cinder.volume' in salt['pillar.get']('sls:storage') %}
-      - pkg: storage_{{ pkg }}_volume_purge
-          {% endif %}
-        {% elif pkg in salt['pillar.get']('sls:storage') %}
-      - pkg: storage_{{ pkg }}_purge
-        {% endif %}
-      {% endif %}
+        {% for pkg in packages %}
+      - pkg: hard_reset_{{ role }}_{{ pkg }}_purged
+        {% endfor %}
+      {% endfor %}
     {% endif %}
   {% endfor %}
-{% endfor %}
-
-
-{% if grains['os'] == 'Ubuntu' %}
-
-
-# Remove Ubuntu cloud keyring repository containing OpenStack Juno packages
-
-ubuntu_cloud_keyring_purge:
-  pkg.purged:
-    - name: {{ salt['pillar.get']('packages:ubuntu-cloud-keyring') }}
-
-cloudarchive_juno_delete:
-  file.absent:
-    - name: {{ salt['pillar.get']('conf_files:cloud_archive_juno') }}
-
-apt_get_cleanup_commands:
-  cmd.run:
-    - name: "apt-get autoremove -y && apt-get autoclean -y && apt-get clean -y"
-
 {% endif %}

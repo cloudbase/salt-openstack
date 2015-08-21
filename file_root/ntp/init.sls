@@ -1,22 +1,29 @@
-install_ntp:
-  pkg:
-    - installed
-    - refresh: False
-    - name: ntp
+{% set ntp = salt['openstack_utils.ntp']() %}
 
-stop_ntpd:
+
+{% for pkg in ntp['packages'] %}
+ntp_{{ pkg }}_install:
+  pkg.installed:
+    - name: {{ pkg }}
+{% endfor %}
+
+
+ntp_service_dead:
   service.dead:
-    - name: {{ salt['pillar.get']('services:ntp') }}
+    - name: {{ ntp['services']['ntp'] }}
 
-hwclock_sync:
+
+ntp_hwclock_sync:
   cmd.run:
     - name: hwclock --systohc --utc
 
-start_ntp:
-  service:
-    - running
+
+ntp_service_running:
+  service.running:
     - enable: True
-    - name: {{ salt['pillar.get']('services:ntp') }}
+    - name: {{ ntp['services']['ntp'] }}
     - require:
-      - pkg: ntp
-      - cmd: hwclock_sync
+{% for pkg in ntp['packages'] %}
+      - pkg: ntp_{{ pkg }}_install
+{% endfor %}
+      - cmd: ntp_hwclock_sync
