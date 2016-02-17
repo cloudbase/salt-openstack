@@ -262,6 +262,7 @@ resources:
             - "neutron-l3-agent"
             - "neutron-dhcp-agent"
             - "neutron-metadata-agent"
+            - "python-neutron-fwaas"
             - "python-neutronclient"
             - "conntrack"
         services:
